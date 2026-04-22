@@ -5,6 +5,20 @@ This guide is organized by role:
 - Teacher (exam operator and grader)
 - Student (exam taker)
 
+## Role Screenshots
+
+### Admin / System Landing
+![System landing](screenshots/home-landing.png)
+
+### Teacher Command Center
+![Teacher command center](screenshots/teacher-admin-command-center.png)
+
+### Student Login Screen
+![Student exam login](screenshots/student-login-exam-mode.png)
+
+### Student Exam IDE
+![Student IDE](screenshots/student-ide.png)
+
 ## 1. Admin Guide
 
 ### 1.1 Purpose
