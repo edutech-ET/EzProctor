@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CloudIDE Secure Pro | Coding Exam Platform</title>
+    <meta
+      name="description"
+      content="CloudIDE Secure Pro is a secure coding exam platform for schools and training providers with role-based workflows for admins, teachers, and students."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Syne:wght@500;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="hero">
+      <nav class="topbar">
+        <p class="brand">CloudIDE Secure Pro</p>
+        <a class="cta" href="#roles">Explore Roles</a>
+      </nav>
+      <div class="hero-grid">
+        <div>
+          <p class="eyebrow">Secure Coding Assessment Platform</p>
+          <h1>Run Professional Coding Exams With Confidence</h1>
+          <p class="lead">
+            CloudIDE Secure Pro combines exam authoring, live session control, and student IDE execution in one
+            focused platform for real classrooms and labs.
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#workflow">View Workflow</a>
+            <a class="btn btn-outline" href="#stack">See Tech Stack</a>
+          </div>
+        </div>
+        <aside class="snapshot">
+          <h2>At A Glance</h2>
+          <ul>
+            <li>Admin-ready deployment</li>
+            <li>Teacher command center</li>
+            <li>Student exam mode + IDE</li>
+            <li>Python and Rust runtime support</li>
+            <li>Submission review and grading</li>
+          </ul>
+        </aside>
+      </div>
+    </header>
+
+    <main>
+      <section id="roles" class="section">
+        <div class="section-head">
+          <p class="eyebrow">Role-Based Experience</p>
+          <h2>Built For Every Exam Stakeholder</h2>
+        </div>
+        <div class="card-grid">
+          <article class="role-card">
+            <span class="chip">Admin</span>
+            <h3>Deploy And Operate</h3>
+            <p>Launch with local runtime or Docker, validate health endpoints, and hand over stable exam URLs.</p>
+          </article>
+          <article class="role-card">
+            <span class="chip">Teacher</span>
+            <h3>Create, Run, Grade</h3>
+            <p>Build exams, schedule sessions, register students, monitor activity, and grade submissions.</p>
+          </article>
+          <article class="role-card">
+            <span class="chip">Student</span>
+            <h3>Verify, Code, Submit</h3>
+            <p>Authenticate, enter exam mode, solve tasks in IDE, and submit work before timer expiry.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="workflow" class="section section-accent">
+        <div class="section-head">
+          <p class="eyebrow">Exam Lifecycle</p>
+          <h2>Simple End-To-End Workflow</h2>
+        </div>
+        <ol class="timeline">
+          <li><strong>1. Setup:</strong> Admin starts platform and checks system health.</li>
+          <li><strong>2. Author:</strong> Teacher creates exam template and questions.</li>
+          <li><strong>3. Schedule:</strong> Teacher creates session and assigns students.</li>
+          <li><strong>4. Run:</strong> Students verify identity and launch secure IDE.</li>
+          <li><strong>5. Monitor:</strong> Teacher tracks live progress and integrity signals.</li>
+          <li><strong>6. Review:</strong> Submissions are inspected, graded, and exported.</li>
+        </ol>
+      </section>
+
+      <section id="stack" class="section">
+        <div class="section-head">
+          <p class="eyebrow">Platform Stack</p>
+          <h2>Practical, Modern, Extensible</h2>
+        </div>
+        <div class="stack-grid">
+          <article>
+            <h3>Frontend</h3>
+            <p>Teacher dashboard with React + Vite, and focused exam/admin interfaces for fast operations.</p>
+          </article>
+          <article>
+            <h3>Backend</h3>
+            <p>Node.js + Express APIs, WebSocket event updates, and SQLite-backed session/submission data.</p>
+          </article>
+          <article>
+            <h3>Runtime</h3>
+            <p>Python and Rust execution pipelines, exam workspace management, and language-aware file rules.</p>
+          </article>
+          <article>
+            <h3>Desktop Security</h3>
+            <p>Electron lockdown client plus native keyboard-hook capability for tighter exam control on Windows.</p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>CloudIDE Secure Pro</p>
+      <p>Secure practical assessments for modern classrooms.</p>
+    </footer>
+
+    <script src="./main.js"></script>
+  </body>
+</html>
+

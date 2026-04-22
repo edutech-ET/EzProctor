@@ -78,6 +78,25 @@ Notes:
 - Container persists database files in a named volume mounted at `/app/backend/data`.
 - Runtime includes `python3`, `rustc`, and `cargo` for Python/Rust exam execution.
 
+## Netlify Project Website
+
+This repo includes a dedicated project-introduction site in:
+
+- `marketing-site/`
+
+Netlify configuration is already added in:
+
+- `netlify.toml` (publish directory set to `marketing-site`)
+
+Deploy steps:
+1. Push this repo to GitHub.
+2. In Netlify, click **Add new site** -> **Import from Git**.
+3. Select this repository.
+4. Build settings:
+   - Build command: leave empty
+   - Publish directory: `marketing-site`
+5. Deploy site.
+
 ## GitHub Upload
 
 If this folder is not yet a git repo:
