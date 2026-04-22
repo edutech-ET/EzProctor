@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CloudIDE Secure Admin</title>
+    <link rel="stylesheet" href="/admin.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <p class="eyebrow">CloudIDE Secure Pro</p>
+        <h1>Teacher Command Center</h1>
+        <p class="subcopy">A simpler workflow for preparing exams, launching sessions, watching student activity, and reviewing submissions.</p>
+        <div class="status-strip">
+          <span id="apiState" class="pill">API Loading</span>
+          <span id="socketState" class="pill">Socket Connecting</span>
+          <span id="examCount" class="pill">0 exams</span>
+          <span id="sessionCount" class="pill">0 sessions</span>
+        </div>
+        <p id="errorText" class="error-text" hidden></p>
+      </section>
+
+      <section class="flow-strip">
+        <button class="flow-chip" type="button" data-scroll-target="setupSection">1. Setup Exam</button>
+        <button class="flow-chip" type="button" data-scroll-target="sessionSection">2. Run Session</button>
+        <button class="flow-chip" type="button" data-scroll-target="monitorSection">3. Monitor Students</button>
+        <button class="flow-chip" type="button" data-scroll-target="reviewSection">4. Review Submissions</button>
+      </section>
+
+      <section class="summary-grid">
+        <article class="summary-card">
+          <span class="summary-label">Exams</span>
+          <strong id="summaryExams">0</strong>
+          <p>Draft and scheduled assessment templates.</p>
+        </article>
+        <article class="summary-card">
+          <span class="summary-label">Live Sessions</span>
+          <strong id="summaryLiveSessions">0</strong>
+          <p>Sessions currently accepting student work.</p>
+        </article>
+        <article class="summary-card">
+          <span class="summary-label">Submissions</span>
+          <strong id="summarySubmissions">0</strong>
+          <p>Completed student hand-ins ready for review.</p>
+        </article>
+        <article class="summary-card">
+          <span class="summary-label">High Risk</span>
+          <strong id="summaryHighRisk">0</strong>
+          <p>Students with integrity scores that need attention.</p>
+        </article>
+        <article class="summary-card">
+          <span class="summary-label">Checked In</span>
+          <strong id="summaryPendingApproval">0</strong>
+          <p>Registered students currently waiting in the lobby.</p>
+        </article>
+      </section>
+
+      <section class="quick-start">
+        <article class="quick-start-card">
+          <strong>Quick teacher flow</strong>
+          <p>Create the exam title, optionally add questions, import the student CSV, then create and start the session. Everything else can stay on the defaults.</p>
+        </article>
+        <article class="quick-start-card">
+          <strong>Fewer required fields</strong>
+          <p>Only the exam title is truly required now. Session name, student count, and seat labels can all be auto-filled.</p>
+        </article>
+      </section>
+
+      <section class="panel ops-panel">
+        <div class="section-intro">
+          <p class="eyebrow">Quick Operations</p>
+          <h2>Run Exam In 3 Clicks</h2>
+          <p class="subcopy">Use this for the fastest teacher workflow. Full controls are still available below.</p>
+        </div>
+        <div class="ops-grid">
+          <article class="ops-card">
+            <span class="ops-step">Step 1</span>
+            <strong>Create Exam Template</strong>
+            <div class="ops-form">
+              <input id="quickExamTitle" placeholder="Example: Rust Practical Test" />
+              <select id="quickExamLanguage">
+                <option>Rust</option>
+                <option>Python</option>
+              </select>
+              <button id="quickCreateExamButton" type="button">Create Exam</button>
+            </div>
+          </article>
+
+          <article class="ops-card">
+            <span class="ops-step">Step 2</span>
+            <strong>Create And Start Session</strong>
+            <p class="meta">Uses the selected exam (or latest exam) and starts it immediately.</p>
+            <button id="quickStartSessionButton" class="secondary" type="button">Create + Start Session</button>
+          </article>
+
+          <article class="ops-card">
+            <span class="ops-step">Step 3</span>
+            <strong>Assign All Students</strong>
+            <p class="meta">Bulk-assigns all roster students into the selected session.</p>
+            <button id="quickAssignAllButton" class="secondary" type="button">Assign All Students</button>
+          </article>
+        </div>
+        <p id="quickOpsStatus" class="status-text">Quick operations ready.</p>
+      </section>
+
+      <section id="setupSection" class="workspace-grid">
+        <article class="panel tall-panel">
+          <div class="section-intro">
+            <p class="eyebrow">Step 1</p>
+            <h2>Build The Exam</h2>
+            <p class="subcopy">Start with the exam title. The rest already has sensible defaults, and you can expand advanced settings only when you need them.</p>
+          </div>
+          <form id="examForm" class="stack">
+            <label class="field">
+              <span>Exam title</span>
+              <input name="title" placeholder="Example: Python Final Lab" required />
+            </label>
+            <div class="question-grid">
+              <label class="field">
+                <span>Exam timer in minutes</span>
+                <input id="examDurationInput" name="durationMinutes" type="number" min="15" value="90" />
+              </label>
+              <div class="field">
+                <span>Quick timer</span>
+                <div class="timer-preset-row">
+                  <button class="ghost-button timer-preset" data-duration="45" type="button">45 min</button>
+                  <button class="ghost-button timer-preset" data-duration="60" type="button">60 min</button>
+                  <button class="ghost-button timer-preset" data-duration="90" type="button">90 min</button>
+                  <button class="ghost-button timer-preset" data-duration="120" type="button">120 min</button>
+                </div>
+              </div>
+            </div>
+            <div class="helper-banner">
+              Default setup: <strong>Coding</strong>, <strong>Python</strong>, <strong>90 minutes</strong>. Word import can now detect likely format, language, and time allowance from the exam brief.
+            </div>
+            <details class="fold-panel">
+              <summary>Advanced exam settings</summary>
+              <div class="question-grid fold-content">
+                <label class="field">
+                  <span>Test type</span>
+                  <select name="testType">
+                    <option>Coding</option>
+                    <option>Mixed Format</option>
+                    <option>Multiple Choice</option>
+                    <option>Short Question</option>
+                    <option>Long Question</option>
+                    <option>Debugging</option>
+                    <option>Database</option>
+                    <option>Frontend</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Primary language</span>
+                  <select name="language">
+                    <option>Python</option>
+                    <option>Rust</option>
+                    <option>JavaScript</option>
+                    <option>Java</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Duration in minutes</span>
+                  <input id="examDurationAdvanced" type="number" min="15" value="90" />
+                </label>
+              </div>
+            </details>
+            <div class="question-builder">
+              <div class="panel-head question-builder-head">
+                <div>
+                  <h3>Question Builder</h3>
+                  <span>Add questions only if you want a richer paper. You can also save the exam first and come back later.</span>
+                </div>
+                <span id="questionDraftCount" class="pill">0 questions</span>
+              </div>
+              <details class="fold-panel" open>
+                <summary>Add one question manually</summary>
+                <div class="fold-content stack">
+                  <div class="question-grid">
+                    <label class="field">
+                      <span>Question format</span>
+                      <select id="questionFormat">
+                        <option>Coding</option>
+                        <option>Multiple Choice</option>
+                        <option>Short Question</option>
+                        <option>Long Question</option>
+                        <option>Database</option>
+                        <option>Frontend</option>
+                        <option>Debugging</option>
+                      </select>
+                    </label>
+                    <label class="field">
+                      <span>Question title</span>
+                      <input id="questionTitle" placeholder="Example: Build a Fibonacci function" />
+                    </label>
+                    <label class="field">
+                      <span>Points</span>
+                      <input id="questionPoints" type="number" min="1" value="10" />
+                    </label>
+                  </div>
+
+                  <label class="field">
+                    <span>Question prompt</span>
+                    <textarea id="questionPrompt" rows="5" placeholder="Describe the task, requirements, and constraints."></textarea>
+                  </label>
+
+                  <details class="fold-panel nested-fold">
+                    <summary>Optional extra question details</summary>
+                    <div class="fold-content stack">
+                      <label class="field">
+                        <span>Options or checklist</span>
+                        <textarea id="questionOptions" rows="4" placeholder="Use one line per option for multiple choice, or one line per checklist item for other formats."></textarea>
+                      </label>
+
+                      <div class="question-grid">
+                        <label class="field">
+                          <span>Starter code or starter content</span>
+                          <textarea id="questionStarter" rows="4" placeholder="Optional starter code, SQL schema, HTML scaffold, or starter text."></textarea>
+                        </label>
+                        <label class="field">
+                          <span>Answer guide or rubric notes</span>
+                          <textarea id="questionAnswerGuide" rows="4" placeholder="Optional model answer, marking guide, or hidden teacher notes."></textarea>
+                        </label>
+                      </div>
+                    </div>
+                  </details>
+
+                  <div class="submission-actions">
+                    <button id="addQuestionButton" type="button">Add Question To Exam</button>
+                    <button id="clearQuestionDraftButton" class="ghost-button" type="button">Clear Draft</button>
+                  </div>
+                </div>
+              </details>
+
+              <details class="fold-panel">
+                <summary>Import questions from CSV</summary>
+                <div id="questionImportForm" class="stack fold-content">
+                  <label class="field">
+                    <span>Question file</span>
+                    <input id="questionImportFile" type="file" accept=".json,.csv,text/csv,application/json" />
+                  </label>
+                  <div class="submission-actions">
+                    <button id="downloadQuestionTemplateButton" type="button">Download CSV Template</button>
+                    <button id="importQuestionFileButton" class="secondary" type="button">Import Into Question Builder</button>
+                  </div>
+                  <p class="subcopy">CSV columns: <code>format,title,prompt,points,options,starter,answerGuide</code>. Use <code>|</code> between options for multiple choice rows.</p>
+                  <p id="questionImportStatus" class="status-text">No question import run yet.</p>
+                </div>
+              </details>
+
+              <details class="fold-panel">
+                <summary>Import from Word document</summary>
+                <div id="questionDocImportForm" class="stack fold-content">
+                  <label class="field">
+                    <span>Word file</span>
+                    <input id="questionDocImportFile" type="file" accept=".docx,.txt,.md" />
+                  </label>
+                  <p class="subcopy">Best results use a <code>.docx</code> file with the exam brief, tasks, or marking notes. The system will summarize it and turn it into question drafts.</p>
+                  <p id="questionDocMetadata" class="subcopy">Detected format, language, and time allowance will be applied to the exam form when available.</p>
+                  <div class="submission-actions">
+                    <button id="importWordButton" class="secondary" type="button">Import And Summarize</button>
+                  </div>
+                  <p id="questionDocImportStatus" class="status-text">No document import run yet.</p>
+                </div>
+              </details>
+
+              <details class="fold-panel">
+                <summary>Generate questions with AI</summary>
+                <div id="questionAiForm" class="stack fold-content">
+                  <div class="question-grid">
+                    <label class="field">
+                      <span>Topic or learning outcome</span>
+                      <input id="aiTopic" placeholder="Example: Python functions, loops, and input validation" />
+                    </label>
+                    <label class="field">
+                      <span>Difficulty</span>
+                      <select id="aiDifficulty">
+                        <option>Beginner</option>
+                        <option selected>Intermediate</option>
+                        <option>Advanced</option>
+                      </select>
+                    </label>
+                    <label class="field">
+                      <span>Question count</span>
+                      <input id="aiQuestionCount" type="number" min="1" max="8" value="3" />
+                    </label>
+                  </div>
+                  <label class="field">
+                    <span>Preferred formats</span>
+                    <input id="aiFormats" placeholder="Example: Coding, Multiple Choice, Short Question, Long Question" />
+                  </label>
+                  <label class="field">
+                    <span>Teacher notes</span>
+                    <textarea id="aiNotes" rows="4" placeholder="Optional instructions such as no recursion, include edge cases, or focus on SQL joins."></textarea>
+                  </label>
+                  <div class="submission-actions">
+                    <button id="generateAiQuestionsButton" class="secondary" type="button">Generate With AI</button>
+                  </div>
+                  <p id="questionAiStatus" class="status-text">AI question generation is ready when an OpenAI API key is configured.</p>
+                </div>
+              </details>
+
+              <div id="questionDraftList" class="list"></div>
+            </div>
+            <button type="submit">Save Exam Template</button>
+          </form>
+          <div class="panel-divider"></div>
+          <div class="panel-head">
+            <h3>Saved Exams</h3>
+            <span>Templates ready to schedule</span>
+          </div>
+          <div id="examList" class="list"></div>
+        </article>
+
+        <aside class="panel sidebar-panel">
+          <div class="section-intro">
+            <p class="eyebrow">Quick Help</p>
+            <h2>Before You Start</h2>
+          </div>
+          <div class="guide-list">
+            <article class="guide-card">
+              <strong>1. Create the exam</strong>
+              <p>Set the title, test type, language, and duration. This becomes the template for all sessions.</p>
+            </article>
+            <article class="guide-card">
+              <strong>2. Create a session</strong>
+              <p>Sessions are the actual sitting windows. Students join these and the timer comes from the exam template.</p>
+            </article>
+            <article class="guide-card">
+              <strong>3. Register students</strong>
+              <p>Assign each student to the right session so the dashboard can track them properly.</p>
+            </article>
+            <article class="guide-card">
+              <strong>4. Start and monitor</strong>
+              <p>Open the session, let students verify and launch the app, then watch progress and integrity signals live.</p>
+            </article>
+            <article class="guide-card">
+              <strong>5. Review submissions</strong>
+              <p>Use the Submissions area to inspect files or download the complete hand-in package.</p>
+            </article>
+          </div>
+        </aside>
+      </section>
+
+      <section id="sessionSection" class="workspace-grid">
+        <article class="panel">
+          <div class="section-intro">
+            <p class="eyebrow">Step 2A</p>
+            <h2>Open A Session</h2>
+            <p class="subcopy">Choose the exam and create the room. If you leave the extra fields empty, the dashboard will fill them for you.</p>
+          </div>
+          <form id="sessionForm" class="stack">
+            <label class="field">
+              <span>Exam template</span>
+              <select name="examId" id="sessionExamId" required></select>
+            </label>
+            <details class="fold-panel">
+              <summary>Optional session details</summary>
+              <div class="fold-content question-grid">
+                <label class="field">
+                  <span>Session name</span>
+                  <input name="sessionName" placeholder="Auto-generated from exam and date if left blank" />
+                </label>
+                <label class="field">
+                  <span>Expected student count</span>
+                  <input name="studentCount" type="number" min="1" placeholder="Auto-filled from roster size" />
+                </label>
+              </div>
+            </details>
+            <button type="submit">Create Session</button>
+          </form>
+          <div class="panel-divider"></div>
+          <div class="panel-head">
+            <h3>Session Control</h3>
+            <span>Start when students are ready, stop to close and collect</span>
+          </div>
+          <div id="sessionList" class="list"></div>
+        </article>
+
+        <article class="panel">
+          <div class="section-intro">
+            <p class="eyebrow">Step 2B</p>
+            <h2>Add Students</h2>
+            <p class="subcopy">The fastest path is importing the class CSV. Manual student entry is still available if you need it.</p>
+          </div>
+          <form id="studentImportForm" class="stack">
+            <label class="field">
+              <span>Import student CSV</span>
+              <input id="studentImportFile" type="file" accept=".csv,text/csv" />
+            </label>
+            <p class="subcopy">CSV columns: <code>studentNumber,fullName,email</code></p>
+            <button type="submit">Import Student List</button>
+            <p id="studentImportStatus" class="status-text">No import run yet.</p>
+          </form>
+          <div class="panel-divider"></div>
+          <details class="fold-panel">
+            <summary>Add one student manually</summary>
+            <form id="studentForm" class="stack fold-content">
+              <label class="field">
+                <span>Student number</span>
+                <input name="studentNumber" placeholder="Example: STU1001" required />
+              </label>
+              <label class="field">
+                <span>Full name</span>
+                <input name="fullName" placeholder="Example: Alice Candidate" required />
+              </label>
+              <label class="field">
+                <span>Email</span>
+                <input name="email" placeholder="student@example.com" />
+              </label>
+              <button type="submit">Create Student</button>
+            </form>
+          </details>
+          <div class="panel-divider"></div>
+          <div class="panel-head">
+            <h3>Student Roster</h3>
+            <span>Only registered students can enter the exam</span>
+          </div>
+          <div id="studentList" class="list"></div>
+        </article>
+      </section>
+
+      <section class="workspace-grid">
+        <article class="panel">
+          <div class="section-intro">
+            <p class="eyebrow">Step 2C</p>
+            <h2>Assign Students To A Session</h2>
+            <p class="subcopy">Pick the session and student. Seat label is optional and can be skipped for a faster setup.</p>
+          </div>
+          <form id="registrationForm" class="stack">
+            <label class="field">
+              <span>Session</span>
+              <select name="sessionId" id="registrationSessionId" required></select>
+            </label>
+            <label class="field">
+              <span>Student</span>
+              <select name="studentId" id="registrationStudentId" required></select>
+            </label>
+            <details class="fold-panel">
+              <summary>Optional seat or machine label</summary>
+              <div class="fold-content">
+                <label class="field">
+                  <span>Seat or machine label</span>
+                  <input name="seatLabel" placeholder="Example: LAB-PC-01" />
+                </label>
+              </div>
+            </details>
+            <button type="submit">Assign Student</button>
+          </form>
+          <div class="panel-divider"></div>
+          <div class="panel-head">
+            <h3>Assignments</h3>
+            <span>Access and verification details for each student</span>
+          </div>
+          <div id="registrationList" class="list"></div>
+        </article>
+
+        <article class="panel emphasis-panel">
+          <div class="section-intro">
+            <p class="eyebrow">Launch Flow</p>
+            <h2>What Students Do</h2>
+            <p class="subcopy">Share the verification page with students, then have them follow these exact steps.</p>
+          </div>
+          <ol class="timeline">
+            <li>Open the verification page in a browser.</li>
+            <li>Click <strong>Verify and Launch App</strong>.</li>
+            <li>The desktop lockdown app opens and takes the student into the IDE.</li>
+            <li>The timer begins and activity is streamed back to this dashboard.</li>
+            <li>The student clicks <strong>Submit and Exit</strong> when finished, or the teacher stops the session.</li>
+          </ol>
+          <div class="launch-box">
+            <span class="summary-label">Verification Page</span>
+            <a href="/exam-mode" target="_blank" rel="noreferrer">http://127.0.0.1:8787/exam-mode</a>
+          </div>
+        </article>
+      </section>
+
+      <section id="monitorSection" class="panel">
+        <div class="panel-head">
+          <h2>Live Student Activity</h2>
+          <span id="activeCount">0 active</span>
+        </div>
+        <p class="subcopy">Watch progress, current activity, and integrity signals while the session is running.</p>
+        <div id="activityList" class="cards"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Lobby Check-Ins</h2>
+          <span id="approvalCount">0 waiting</span>
+        </div>
+        <p class="subcopy">Only registered students can check in. They wait here until you start the exam session.</p>
+        <div id="approvalList" class="list"></div>
+      </section>
+
+      <section id="reviewSection" class="panel">
+        <div class="panel-head">
+          <h2>Submissions</h2>
+          <span id="submissionCount">0 recorded</span>
+        </div>
+        <p class="subcopy">Use View to inspect the student files directly, or Download to export the full submission as JSON.</p>
+        <div id="submissionList" class="list"></div>
+      </section>
+
+      <section id="submissionInspector" class="panel inspector" hidden>
+        <div class="panel-head">
+          <div>
+            <h2>Submission Inspector</h2>
+            <p id="inspectorMeta" class="subcopy">Choose a submission from the list to inspect student files.</p>
+          </div>
+          <button id="closeInspector" class="ghost-button" type="button">Close</button>
+        </div>
+        <div class="inspector-toolbar">
+          <select id="submissionFileSelect"></select>
+          <a id="downloadSubmission" class="ghost-button" href="#" download>Download Submission</a>
+        </div>
+        <div class="grade-grid">
+          <form id="gradingForm" class="grade-form">
+            <div class="field">
+              <span>Score</span>
+              <input id="gradeScore" name="gradeScore" type="number" min="0" max="100" step="0.5" placeholder="0-100" />
+            </div>
+            <div class="field">
+              <span>Review status</span>
+              <select id="gradeStatus" name="gradeStatus">
+                <option>Pending Review</option>
+                <option>Reviewed</option>
+                <option>Needs Follow-up</option>
+                <option>Graded</option>
+              </select>
+            </div>
+            <div class="field">
+              <span>Teacher feedback</span>
+              <textarea id="teacherFeedback" name="teacherFeedback" rows="5" placeholder="Add grading notes or comments for this submission."></textarea>
+            </div>
+            <div class="actions">
+              <button class="secondary" type="submit">Save Grade</button>
+              <span id="gradeSavedState" class="status-text">No grade saved yet.</span>
+            </div>
+          </form>
+          <div class="grade-summary-card">
+            <span class="summary-label">Review Snapshot</span>
+            <strong id="reviewStatusSummary">Pending Review</strong>
+            <p id="reviewMeta" class="subcopy">This submission has not been graded yet.</p>
+          </div>
+        </div>
+        <pre id="submissionCode" class="code-viewer">Choose a submission to view the student files.</pre>
+      </section>
+    </main>
+    <script src="/admin.js"></script>
+  </body>
+</html>

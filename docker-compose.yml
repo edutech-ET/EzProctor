@@ -1,0 +1,18 @@
+services:
+  cloudide-secure:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cloudide-secure
+    ports:
+      - "8787:8787"
+    environment:
+      BACKEND_PORT: 8787
+      CLOUDIDE_SECURE_DATA_DIR: /app/backend/data
+    volumes:
+      - cloudide_data:/app/backend/data
+    restart: unless-stopped
+
+volumes:
+  cloudide_data:
+

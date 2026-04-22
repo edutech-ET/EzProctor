@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CloudIDE Secure Student</title>
+    <style>
+      :root {
+        --bg: #0b1120;
+        --panel: rgba(15, 23, 42, 0.9);
+        --line: rgba(148, 163, 184, 0.18);
+        --text: #e2e8f0;
+        --muted: #94a3b8;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        color: var(--text);
+        font-family: "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at top right, rgba(56, 189, 248, 0.18), transparent 25%),
+          linear-gradient(160deg, #020617, #0f172a 60%, #111827);
+      }
+      .card {
+        width: min(560px, calc(100vw - 32px));
+        padding: 32px;
+        border-radius: 24px;
+        border: 1px solid var(--line);
+        background: var(--panel);
+      }
+      h1 { margin: 0 0 10px; font-size: 2rem; }
+      p { color: var(--muted); line-height: 1.5; }
+      .stack { display: grid; gap: 12px; margin-top: 24px; }
+      a, button {
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        padding: 14px 16px;
+        border: none;
+        border-radius: 14px;
+        text-decoration: none;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .primary { background: #14532d; color: white; }
+      .secondary { background: #183b56; color: white; }
+      .danger { background: #7f1d1d; color: white; }
+      #status { margin-top: 18px; color: var(--muted); font-size: 14px; }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <h1>CloudIDE Secure Student</h1>
+      <p>Open the IDE directly. Session code, student ID, and exam identity checks are bypassed in this test flow.</p>
+      <div class="stack">
+        <a class="primary" href="/exam-mode">Enter IDE</a>
+        <button class="secondary" id="unlock">Release Key Lock</button>
+        <button class="danger" id="exit">Exit Application</button>
+      </div>
+      <div id="status">Ready.</div>
+    </main>
+    <script>
+      const status = document.getElementById("status");
+
+      document.getElementById("unlock").addEventListener("click", async () => {
+        if (!window.secureClient) {
+          status.textContent = "Unlock is only available in the Electron app.";
+          return;
+        }
+        await window.secureClient.setLockdown(false);
+        status.textContent = "Key lock released.";
+      });
+
+      document.getElementById("exit").addEventListener("click", async () => {
+        if (!window.secureClient) {
+          status.textContent = "Exit is only available in the Electron app.";
+          return;
+        }
+        await window.secureClient.exitExam({ reason: "home-exit" });
+      });
+    </script>
+  </body>
+</html>
+

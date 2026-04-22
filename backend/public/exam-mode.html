@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Student Exam Check-In</title>
+    <style>
+      :root {
+        --bg: #08101f;
+        --panel: rgba(15, 23, 42, 0.92);
+        --panel-soft: rgba(30, 41, 59, 0.78);
+        --line: rgba(148, 163, 184, 0.18);
+        --text: #e2e8f0;
+        --muted: #94a3b8;
+        --accent: #38bdf8;
+        --success: #22c55e;
+        --warn: #f59e0b;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--text);
+        font-family: "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at top, rgba(56, 189, 248, 0.22), transparent 32%),
+          linear-gradient(160deg, #020617, #0f172a 60%, #111827);
+      }
+
+      .shell {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 40px 20px 64px;
+      }
+
+      .hero {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 24px;
+      }
+
+      .eyebrow {
+        margin: 0;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        color: var(--accent);
+      }
+
+      h1, h2, h3, p {
+        margin: 0;
+      }
+
+      .subcopy {
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+        gap: 20px;
+      }
+
+      .panel {
+        border-radius: 24px;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        padding: 24px;
+        box-shadow: 0 24px 50px rgba(2, 6, 23, 0.32);
+      }
+
+      .section {
+        display: grid;
+        gap: 16px;
+      }
+
+      .field {
+        display: grid;
+        gap: 8px;
+      }
+
+      .field span {
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      input {
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        background: rgba(15, 23, 42, 0.7);
+        color: var(--text);
+        padding: 14px 16px;
+        font: inherit;
+      }
+
+      button, a {
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        border-radius: 14px;
+        border: 1px solid transparent;
+        padding: 14px 16px;
+        font: inherit;
+        font-weight: 700;
+        text-decoration: none;
+        cursor: pointer;
+      }
+
+      .primary {
+        background: #14532d;
+        color: white;
+      }
+
+      .secondary {
+        background: #183b56;
+        color: white;
+      }
+
+      .ghost {
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text);
+        border-color: var(--line);
+      }
+
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .summary-card {
+        border-radius: 18px;
+        background: var(--panel-soft);
+        border: 1px solid var(--line);
+        padding: 16px;
+      }
+
+      .summary-card span {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .status-box {
+        border-radius: 18px;
+        border: 1px solid var(--line);
+        background: rgba(15, 23, 42, 0.72);
+        padding: 16px;
+      }
+
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border-radius: 999px;
+        padding: 8px 12px;
+        font-size: 12px;
+        font-weight: 700;
+        background: rgba(56, 189, 248, 0.12);
+        color: var(--accent);
+      }
+
+      .status-pill.waiting {
+        background: rgba(245, 158, 11, 0.14);
+        color: var(--warn);
+      }
+
+      .status-pill.ready {
+        background: rgba(34, 197, 94, 0.14);
+        color: var(--success);
+      }
+
+      .helper-list {
+        display: grid;
+        gap: 12px;
+      }
+
+      .helper-card {
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--line);
+        padding: 14px;
+      }
+
+      .helper-card p {
+        margin-top: 8px;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      .status-text {
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .error-text {
+        color: #fca5a5;
+        font-size: 14px;
+        min-height: 20px;
+      }
+
+      @media (max-width: 900px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <p class="eyebrow">CloudIDE Secure Student</p>
+        <h1>Student Check-In And Waiting Lobby</h1>
+        <p class="subcopy">Enter your student ID and full name to verify against the registered class list, then wait here until your teacher starts the exam session.</p>
+      </section>
+
+      <section class="grid">
+        <article class="panel section">
+          <div class="section">
+            <div>
+              <h2>Check-In</h2>
+              <p class="subcopy">Your details are matched to the current session and shown to the teacher dashboard before the secure app is allowed to launch.</p>
+            </div>
+
+            <form id="checkinForm" class="section">
+              <label class="field">
+                <span>Student ID</span>
+                <input id="studentNumber" name="studentNumber" placeholder="Example: STU1001" required />
+              </label>
+              <label class="field">
+                <span>Full Name</span>
+                <input id="fullName" name="fullName" placeholder="Example: Alice Candidate" required />
+              </label>
+              <button id="checkinButton" class="primary" type="submit">Verify And Enter Lobby</button>
+            </form>
+
+            <p id="errorText" class="error-text"></p>
+          </div>
+
+          <div id="lobbySection" class="section hidden">
+            <div class="status-box">
+              <div id="lobbyStatusPill" class="status-pill waiting">Waiting For Session Start</div>
+              <h3 style="margin-top: 12px;">Lobby Status</h3>
+              <p id="lobbyMessage" class="subcopy" style="margin-top: 8px;">Your check-in is recorded. Please stay on this page until your teacher opens the exam.</p>
+            </div>
+
+            <div class="summary-grid">
+              <article class="summary-card">
+                <span>Student</span>
+                <strong id="studentSummary">Not checked in</strong>
+              </article>
+              <article class="summary-card">
+                <span>Session</span>
+                <strong id="sessionSummary">Waiting for session</strong>
+              </article>
+              <article class="summary-card">
+                <span>Exam</span>
+                <strong id="examSummary">Waiting for exam</strong>
+              </article>
+              <article class="summary-card">
+                <span>Duration</span>
+                <strong id="durationSummary">--</strong>
+              </article>
+            </div>
+
+            <div class="actions">
+              <button id="launchButton" class="secondary" type="button" disabled>Start Secure Exam</button>
+              <a id="fallbackLink" class="ghost hidden" href="#">Open Secure App Manually</a>
+            </div>
+
+            <p id="statusText" class="status-text">Waiting for teacher release.</p>
+          </div>
+        </article>
+
+        <aside class="panel section">
+          <div>
+            <h2>Current Session</h2>
+            <p id="sessionOverview" class="subcopy">Checking for a scheduled session now.</p>
+          </div>
+
+          <div class="helper-list">
+            <article class="helper-card">
+              <strong>1. Enter your details</strong>
+              <p>Use your student ID and full name exactly as your teacher expects to see them.</p>
+            </article>
+            <article class="helper-card">
+              <strong>2. Wait in the lobby</strong>
+              <p>After check-in, stay here until the teacher starts the exam session.</p>
+            </article>
+            <article class="helper-card">
+              <strong>3. Launch only when released</strong>
+              <p>The secure app start button stays locked until the session status changes to Active.</p>
+            </article>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <script>
+      const state = {
+        lobby: null,
+        pollTimer: null
+      };
+
+      const checkinForm = document.getElementById("checkinForm");
+      const launchButton = document.getElementById("launchButton");
+      const fallbackLink = document.getElementById("fallbackLink");
+      const errorText = document.getElementById("errorText");
+      const statusText = document.getElementById("statusText");
+      const lobbySection = document.getElementById("lobbySection");
+      const sessionOverview = document.getElementById("sessionOverview");
+      const protocolBase = "cloudidesecure://start?mode=ide";
+
+      async function api(path, options = {}) {
+        const response = await fetch(path, {
+          headers: {
+            "Content-Type": "application/json",
+            ...(options.headers || {})
+          },
+          ...options
+        });
+
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(payload.error || "Request failed.");
+        }
+
+        return payload;
+      }
+
+      function renderSessionOverview(session) {
+        if (!session) {
+          sessionOverview.textContent = "No scheduled or active session is available right now.";
+          return;
+        }
+
+        sessionOverview.textContent = `${session.examTitle} | ${session.sessionName} | ${session.durationMinutes} min | ${session.status}`;
+      }
+
+      function buildProtocolUrl(lobby) {
+        const params = new URLSearchParams({
+          mode: "ide",
+          sessionId: lobby.session.id,
+          accessCode: lobby.session.accessCode || "",
+          studentId: lobby.student.id,
+          studentName: lobby.student.fullName,
+          studentNumber: lobby.student.studentNumber,
+          examId: lobby.session.examId
+        });
+
+        return `cloudidesecure://start?${params.toString()}`;
+      }
+
+      function renderLobby(lobby) {
+        state.lobby = lobby;
+        lobbySection.classList.remove("hidden");
+        document.getElementById("studentSummary").textContent = `${lobby.student.fullName} (${lobby.student.studentNumber})`;
+        document.getElementById("sessionSummary").textContent = lobby.session.sessionName;
+        document.getElementById("examSummary").textContent = lobby.session.examTitle;
+        document.getElementById("durationSummary").textContent = `${lobby.session.durationMinutes} minutes`;
+        renderSessionOverview(lobby.session);
+
+        const canLaunch = Boolean(lobby.canLaunch);
+        const protocolUrl = buildProtocolUrl(lobby);
+        fallbackLink.href = protocolUrl;
+
+        if (canLaunch) {
+          document.getElementById("lobbyStatusPill").className = "status-pill ready";
+          document.getElementById("lobbyStatusPill").textContent = "Session Released";
+          document.getElementById("lobbyMessage").textContent = "The session is active. Launch the secure app to enter the IDE.";
+          launchButton.disabled = false;
+          fallbackLink.classList.remove("hidden");
+          statusText.textContent = "Ready to launch the secure app.";
+        } else {
+          document.getElementById("lobbyStatusPill").className = "status-pill waiting";
+          document.getElementById("lobbyStatusPill").textContent = "Waiting For Session Start";
+          document.getElementById("lobbyMessage").textContent = "Your check-in is recorded. Stay on this page while the teacher opens the exam session.";
+          launchButton.disabled = true;
+          fallbackLink.classList.add("hidden");
+          statusText.textContent = "Waiting for teacher release.";
+        }
+      }
+
+      async function loadCurrentSession() {
+        try {
+          const session = await api("/api/exam/lobby/session");
+          renderSessionOverview(session);
+        } catch (error) {
+          renderSessionOverview(null);
+        }
+      }
+
+      async function pollLobbyStatus() {
+        if (!state.lobby) {
+          return;
+        }
+
+        try {
+          const lobby = await api(
+            `/api/exam/lobby/status?sessionId=${encodeURIComponent(state.lobby.session.id)}&studentId=${encodeURIComponent(state.lobby.student.id)}`
+          );
+          renderLobby(lobby);
+        } catch (error) {
+          errorText.textContent = error.message;
+        }
+      }
+
+      function startPolling() {
+        if (state.pollTimer) {
+          clearInterval(state.pollTimer);
+        }
+
+        state.pollTimer = setInterval(() => {
+          pollLobbyStatus().catch(() => {});
+        }, 3000);
+      }
+
+      let launchStarted = false;
+
+      function launchApp() {
+        if (!state.lobby?.canLaunch) {
+          return;
+        }
+
+        if (launchStarted) {
+          return;
+        }
+        launchStarted = true;
+
+        const protocolUrl = buildProtocolUrl(state.lobby);
+        statusText.textContent = "Teacher released the exam. Launching secure app...";
+
+        try {
+          window.location.href = protocolUrl;
+        } catch (error) {}
+
+        setTimeout(() => {
+          statusText.textContent = "If the app did not open automatically, use 'Open Secure App Manually'.";
+          fallbackLink.classList.remove("hidden");
+          launchStarted = false;
+        }, 1800);
+      }
+
+      checkinForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        errorText.textContent = "";
+
+        const form = new FormData(checkinForm);
+        try {
+          const lobby = await api("/api/exam/lobby/checkin", {
+            method: "POST",
+            body: JSON.stringify({
+              studentNumber: form.get("studentNumber"),
+              fullName: form.get("fullName")
+            })
+          });
+
+          renderLobby(lobby);
+          startPolling();
+        } catch (error) {
+          errorText.textContent = error.message;
+        }
+      });
+
+      launchButton.addEventListener("click", launchApp);
+
+      loadCurrentSession().catch(() => {});
+    </script>
+  </body>
+</html>

@@ -1,0 +1,16 @@
+node_modules
+**/node_modules
+npm-debug.log
+*.log
+.git
+.gitignore
+.env
+.env.local
+dist
+build
+dashboard/dist
+backend/data
+electron/dist
+native/keyboard-hook/build
+.codex
+

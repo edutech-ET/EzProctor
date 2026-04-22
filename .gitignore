@@ -1,0 +1,15 @@
+node_modules/
+dist/
+build/
+.codex/
+.electron-cache/
+dist-final/
+electron/.runtime/
+.env
+.env.local
+coverage/
+*.log
+backend/data/
+dashboard/dist/
+electron/dist/
+native/keyboard-hook/build/

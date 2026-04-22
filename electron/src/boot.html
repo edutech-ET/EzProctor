@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CloudIDE Secure Student</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: "Segoe UI", sans-serif;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background:
+          radial-gradient(circle at top, rgba(56, 189, 248, 0.2), transparent 45%),
+          linear-gradient(160deg, #020617 0%, #0f172a 55%, #111827 100%);
+        color: #e2e8f0;
+      }
+
+      .panel {
+        width: min(640px, calc(100vw - 48px));
+        padding: 32px;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 24px;
+        background: rgba(15, 23, 42, 0.85);
+        box-shadow: 0 24px 80px rgba(15, 23, 42, 0.45);
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        font-size: 2rem;
+      }
+
+      p {
+        margin: 0 0 18px;
+        color: #cbd5e1;
+        line-height: 1.6;
+      }
+
+      .status {
+        margin: 24px 0;
+        padding: 18px;
+        border-radius: 16px;
+        background: rgba(30, 41, 59, 0.9);
+        border: 1px solid rgba(148, 163, 184, 0.18);
+      }
+
+      .phase {
+        font-size: 0.85rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #7dd3fc;
+      }
+
+      .message {
+        margin-top: 10px;
+        font-size: 1.05rem;
+        font-weight: 600;
+      }
+
+      .meta {
+        margin-top: 14px;
+        font-size: 0.92rem;
+        color: #94a3b8;
+        word-break: break-word;
+      }
+
+      button {
+        padding: 12px 18px;
+        border: 0;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+        color: #082f49;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      button[hidden] {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="panel">
+      <h1>Preparing your secure coding exam</h1>
+      <p>The app is starting the local services and lockdown controls before opening the IDE.</p>
+      <section class="status">
+        <div class="phase" id="phase">Starting</div>
+        <div class="message" id="message">Preparing secure exam environment...</div>
+        <div class="meta" id="meta"></div>
+      </section>
+      <button id="retry" hidden>Retry startup</button>
+    </main>
+    <script>
+      const phaseElement = document.getElementById("phase");
+      const messageElement = document.getElementById("message");
+      const metaElement = document.getElementById("meta");
+      const retryButton = document.getElementById("retry");
+
+      function renderState(state) {
+        phaseElement.textContent = state.phase || "Starting";
+        messageElement.textContent = state.message || "Preparing secure exam environment...";
+        const meta = [];
+        if (state.backendUrl) {
+          meta.push(`Backend: ${state.backendUrl}`);
+        }
+        if (state.startupLogPath) {
+          meta.push(`Log: ${state.startupLogPath}`);
+        }
+        metaElement.textContent = meta.join(" | ");
+        retryButton.hidden = state.phase !== "error";
+      }
+
+      window.secureClient.onBootState((state) => renderState(state || {}));
+      retryButton.addEventListener("click", async () => {
+        retryButton.disabled = true;
+        renderState({ phase: "retrying", message: "Retrying secure startup..." });
+        try {
+          await window.secureClient.retryStartup();
+        } finally {
+          retryButton.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>

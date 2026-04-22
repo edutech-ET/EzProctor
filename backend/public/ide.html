@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CloudIDE Secure Pro IDE</title>
+    <link rel="stylesheet" href="/exam-mode.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div>
+          <p class="eyebrow">CloudIDE Secure Pro</p>
+          <h1 id="ideTitle">Secure IDE</h1>
+          <p class="muted" id="studentLabel">Open IDE mode active.</p>
+          <p class="muted" id="timerLabel">Exam timer loading...</p>
+          <p class="muted" id="examLabel">Exam paper loading...</p>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <h2>Files</h2>
+          </div>
+          <div class="action-row">
+            <button id="addFileButton" class="secondary" type="button">Add File</button>
+            <button id="renameFileButton" class="secondary" type="button">Rename File</button>
+          </div>
+          <div id="fileList" class="file-list"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <h2>Controls</h2>
+          </div>
+          <button id="runButton" class="primary">Run Code</button>
+          <button id="saveButton" class="secondary">Save Draft</button>
+          <button id="submitButton" class="accent">Submit and Exit</button>
+          <button id="exitButton" class="danger">Exit and Release Key Lock</button>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <section class="panel exam-stage-panel">
+          <div class="panel-header">
+            <div>
+              <h2 id="questionStageLabel">Instructions</h2>
+              <p id="questionProgressLabel" class="muted">Preparing exam paper...</p>
+            </div>
+            <div class="question-nav">
+              <button id="flagQuestionButton" class="secondary nav-button" type="button">Flag</button>
+              <button id="markAnsweredButton" class="secondary nav-button" type="button">Mark Answered</button>
+              <button id="prevQuestionButton" class="secondary nav-button" type="button">Previous</button>
+              <button id="nextQuestionButton" class="primary nav-button" type="button">Start Exam</button>
+            </div>
+          </div>
+          <div id="questionList" class="question-list">
+            <p class="muted">Loading saved exam questions...</p>
+          </div>
+        </section>
+
+        <section class="workspace-body">
+          <section class="editor-panel">
+            <div class="toolbar">
+              <div>
+                <strong id="activeFileName">main.py</strong>
+                <span class="muted">Secure student IDE</span>
+              </div>
+              <span id="saveState" class="status-chip">Loading</span>
+            </div>
+            <textarea id="editor" spellcheck="false"></textarea>
+          </section>
+
+          <section class="right-rail">
+            <div class="panel">
+              <div class="panel-header">
+                <h2>Question Status</h2>
+              </div>
+              <div id="questionStatusList" class="question-status-list">
+                <p class="muted">Question status will appear here.</p>
+              </div>
+            </div>
+
+            <div class="panel">
+            <div class="panel-header">
+              <h2>Input</h2>
+            </div>
+            <textarea id="stdinEditor" class="small-editor" spellcheck="false"></textarea>
+            </div>
+
+            <div class="panel">
+              <div class="panel-header">
+                <h2>Console</h2>
+              </div>
+              <pre id="consoleOutput" class="console">Ready.</pre>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <div id="submissionReviewModal" class="review-modal hidden">
+      <div class="review-card">
+        <div class="panel-header">
+          <div>
+            <h2>Submission Review</h2>
+            <p class="muted">Check flagged and unanswered questions before final submission.</p>
+          </div>
+          <button id="closeReviewModal" class="ghost-button" type="button">Close</button>
+        </div>
+        <div id="submissionReviewSummary" class="review-summary"></div>
+        <div id="submissionReviewList" class="review-list"></div>
+        <div class="review-actions">
+          <button id="confirmFinalSubmitButton" class="accent" type="button">Final Submit and Exit</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="/ide.js"></script>
+  </body>
+</html>

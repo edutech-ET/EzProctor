@@ -1,0 +1,71 @@
+{
+  "name": "cloudide-secure-pro",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Desktop coding exam platform with CloudIDE lockdown, monitoring, and teacher dashboard.",
+  "main": "electron/src/main.js",
+  "workspaces": [
+    "backend",
+    "dashboard",
+    "native/keyboard-hook"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:dashboard\" \"npm run dev:electron\"",
+    "dev:backend": "npm --workspace backend run dev",
+    "dev:dashboard": "npm --workspace dashboard run dev",
+    "dev:electron": "wait-on tcp:5173 tcp:8787 && cross-env CLOUDIDE_SECURE_BACKEND_URL=http://localhost:8787 CLOUDIDE_SECURE_DASHBOARD_URL=http://localhost:5173 electron .",
+    "build": "npm run build:dashboard && electron-builder",
+    "build:student": "npm run build:dashboard && electron-builder --win nsis",
+    "build:dashboard": "npm --workspace dashboard run build",
+    "build:native": "npm --workspace native/keyboard-hook run build",
+    "lint": "npm --workspace backend run lint && npm --workspace dashboard run lint"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "ws": "^8.18.1"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3",
+    "electron": "^35.0.1",
+    "electron-builder": "^25.1.8",
+    "wait-on": "^8.0.3"
+  },
+  "build": {
+    "appId": "com.cloudide.secure",
+    "productName": "CloudIDE Secure Student",
+    "directories": {
+      "output": "dist"
+    },
+    "artifactName": "CloudIDE-Secure-Student-${version}-Setup.${ext}",
+    "files": [
+      "electron/**/*",
+      "backend/**/*",
+      "dashboard/dist/**/*",
+      "native/keyboard-hook/**/*",
+      "package.json"
+    ],
+    "extraMetadata": {
+      "main": "electron/src/main.js"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "protocols": [
+      {
+        "name": "CloudIDE Secure Protocol",
+        "schemes": [
+          "cloudidesecure"
+        ]
+      }
+    ],
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": false,
+      "perMachine": false,
+      "shortcutName": "CloudIDE Secure Student"
+    }
+  }
+}
