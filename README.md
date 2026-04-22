@@ -14,6 +14,11 @@ CloudIDE Secure Pro is a desktop coding exam platform that combines:
 - `backend/`: exam session APIs, event ingest, risk engine, live stream server
 - `dashboard/`: teacher monitoring panel
 - `native/keyboard-hook/`: Windows native addon
+- `docs/`: role-based user guides and operational docs
+
+## User Guides
+
+- Role-based guide (Admin, Teacher, Student): [docs/USER_GUIDE.md](docs/USER_GUIDE.md)
 
 ## Development
 
