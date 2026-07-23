@@ -150,6 +150,15 @@ async function runWorkspaceByLanguage(language, files, stdin) {
 }
 
 function buildLobbyPayload({ session, student, registration }) {
+  const startsAtMs = session.startsAt ? new Date(session.startsAt).getTime() : null;
+  const calculatedEndsAt =
+    Number.isFinite(startsAtMs)
+      ? startsAtMs + Number(session.durationMinutes || 90) * 60000
+      : null;
+  const sessionExpired =
+    session.status === "Closed" ||
+    (Number.isFinite(calculatedEndsAt) && calculatedEndsAt <= Date.now());
+
   return {
     session: {
       id: session.id,
@@ -159,6 +168,7 @@ function buildLobbyPayload({ session, student, registration }) {
       accessCode: session.accessCode,
       durationMinutes: session.durationMinutes,
       status: session.status,
+      expired: sessionExpired,
       language: session.language,
       testType: session.testType
     },
@@ -178,7 +188,7 @@ function buildLobbyPayload({ session, student, registration }) {
           lastLoginAt: registration.lastLoginAt || null
         }
       : null,
-    canLaunch: session.status === "Active"
+    canLaunch: session.status === "Active" && !sessionExpired
   };
 }
 
@@ -659,8 +669,8 @@ app.post("/api/exam/authenticate", (_req, res) => {
   });
 });
 
-app.get("/api/exam/timer", (_req, res) => {
-  res.json(getOpenTimer());
+app.get("/api/exam/timer", (req, res) => {
+  res.json(getOpenTimer(String(req.query.sessionId || "")));
 });
 
 app.get("/api/exam/workspace", (req, res) => {

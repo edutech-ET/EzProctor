@@ -230,7 +230,43 @@ function createExam({
   };
 }
 
+function sessionEndTime(startsAt, durationMinutes) {
+  if (!startsAt) {
+    return null;
+  }
+
+  const startMs = new Date(startsAt).getTime();
+  if (!Number.isFinite(startMs)) {
+    return null;
+  }
+
+  return new Date(startMs + Number(durationMinutes || 90) * 60000).toISOString();
+}
+
+function expireStaleSessions() {
+  const activeSessions = db.prepare(`
+    SELECT es.id, es.starts_at AS startsAt, e.duration_minutes AS durationMinutes
+    FROM exam_sessions es
+    JOIN exams e ON e.id = es.exam_id
+    WHERE es.status = 'Active' AND es.starts_at IS NOT NULL
+  `).all();
+
+  const closeSession = db.prepare(`
+    UPDATE exam_sessions
+    SET status = 'Closed', ends_at = ?
+    WHERE id = ? AND status = 'Active'
+  `);
+
+  activeSessions.forEach((session) => {
+    const endsAt = sessionEndTime(session.startsAt, session.durationMinutes);
+    if (endsAt && new Date(endsAt).getTime() <= Date.now()) {
+      closeSession.run(endsAt, session.id);
+    }
+  });
+}
+
 function listSessions() {
+  expireStaleSessions();
   return db.prepare(`
     SELECT es.id, es.exam_id AS examId, es.session_name AS sessionName, es.access_code AS accessCode,
            es.student_count AS studentCount, es.status, es.starts_at AS startsAt, es.ends_at AS endsAt,
@@ -273,16 +309,31 @@ function createSession({ id, examId, sessionName, accessCode, studentCount = 0, 
 }
 
 function updateSessionStatus(id, status) {
-  const startsAt = status === "Active" ? now() : null;
-  const endsAt = status === "Closed" ? now() : null;
-
-  db.prepare(`
-    UPDATE exam_sessions
-    SET status = ?,
-        starts_at = COALESCE(?, starts_at),
-        ends_at = CASE WHEN ? IS NOT NULL THEN ? ELSE ends_at END
-    WHERE id = ?
-  `).run(status, startsAt, endsAt, endsAt, id);
+  if (status === "Active") {
+    const startedAt = now();
+    db.prepare(`
+      UPDATE exam_sessions
+      SET status = 'Closed', ends_at = ?
+      WHERE status = 'Active' AND id <> ?
+    `).run(startedAt, id);
+    db.prepare(`
+      UPDATE exam_sessions
+      SET status = 'Active', starts_at = ?, ends_at = NULL
+      WHERE id = ?
+    `).run(startedAt, id);
+  } else if (status === "Closed") {
+    db.prepare(`
+      UPDATE exam_sessions
+      SET status = 'Closed', ends_at = ?
+      WHERE id = ?
+    `).run(now(), id);
+  } else {
+    db.prepare(`
+      UPDATE exam_sessions
+      SET status = ?
+      WHERE id = ?
+    `).run(status, id);
+  }
 
   return db.prepare(`
     SELECT es.id, es.exam_id AS examId, es.session_name AS sessionName, es.access_code AS accessCode,
@@ -295,8 +346,10 @@ function updateSessionStatus(id, status) {
   `).get(id);
 }
 
-function getOpenTimer() {
-  const activeSession = getActiveSession();
+function getOpenTimer(sessionId = "") {
+  const requestedSession =
+    sessionId && sessionId !== "open-session" ? getSessionById(sessionId) : null;
+  const activeSession = requestedSession || getActiveSession();
 
   const latestExam = db.prepare(`
     SELECT id AS examId, title AS examTitle, test_type AS testType, duration_minutes AS durationMinutes
@@ -333,6 +386,7 @@ function getOpenTimer() {
 }
 
 function getActiveSession() {
+  expireStaleSessions();
   return db.prepare(`
     SELECT es.id, es.exam_id AS examId, es.session_name AS sessionName, es.status,
            es.starts_at AS startsAt, es.ends_at AS endsAt, e.duration_minutes AS durationMinutes,
@@ -438,6 +492,7 @@ function findStudentByNumber(studentNumber) {
 }
 
 function getCurrentLobbySession() {
+  expireStaleSessions();
   return db.prepare(`
     SELECT es.id, es.exam_id AS examId, es.session_name AS sessionName, es.access_code AS accessCode,
            es.student_count AS studentCount, es.status, es.starts_at AS startsAt, es.ends_at AS endsAt,

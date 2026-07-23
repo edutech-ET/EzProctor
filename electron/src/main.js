@@ -361,6 +361,7 @@ function shouldStartEmbeddedBackend() {
 }
 
 async function unlockAndClose(reason = "exit") {
+  logStartup("Unlocking and closing exam window", { reason });
   allowWindowClose = true;
   isExamLocked = false;
   if (focusGuardInterval) {

@@ -387,6 +387,13 @@
           launchButton.disabled = false;
           fallbackLink.classList.remove("hidden");
           statusText.textContent = "Ready to launch the secure app.";
+        } else if (lobby.session.expired || lobby.session.status === "Closed") {
+          document.getElementById("lobbyStatusPill").className = "status-pill waiting";
+          document.getElementById("lobbyStatusPill").textContent = "Session Ended";
+          document.getElementById("lobbyMessage").textContent = "This exam session has expired or was closed. Ask your teacher to start a new session.";
+          launchButton.disabled = true;
+          fallbackLink.classList.add("hidden");
+          statusText.textContent = "Secure exam launch is unavailable for an expired session.";
         } else {
           document.getElementById("lobbyStatusPill").className = "status-pill waiting";
           document.getElementById("lobbyStatusPill").textContent = "Waiting For Session Start";
