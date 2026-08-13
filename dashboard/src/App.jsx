@@ -199,6 +199,16 @@ function Empty({ title, copy }) {
   return <div className="empty-state"><span>0</span><strong>{title}</strong><p>{copy}</p></div>;
 }
 
+function DashboardIcon({ type }) {
+  const paths = {
+    students: <><circle cx="9" cy="8" r="3"/><circle cx="17" cy="10" r="2.5"/><path d="M3.5 19c.5-4 2.4-6 5.5-6s5 2 5.5 6M14 15c2.8-.7 5.4.8 6.5 4"/></>,
+    exams: <><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v5h4M9 12h7M9 16h7"/></>,
+    sessions: <><rect x="3" y="5" width="18" height="15" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/><circle cx="12" cy="15" r="2.5"/></>,
+    clock: <><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></>
+  };
+  return <svg viewBox="0 0 24 24" aria-hidden="true">{paths[type]}</svg>;
+}
+
 function App() {
   const [authState, setAuthState] = useState("checking");
   const [loginForm, setLoginForm] = useState({ username: "", password: "" });
@@ -220,6 +230,7 @@ function App() {
   const [answerImportPreview, setAnswerImportPreview] = useState(null);
   const [gradeForm, setGradeForm] = useState({ gradeScore: "", gradeStatus: "Pending Review", teacherFeedback: "" });
   const [questionGrades, setQuestionGrades] = useState({});
+  const [currentTime, setCurrentTime] = useState(() => new Date());
 
   async function loginEducator(event) {
     event.preventDefault();
@@ -262,6 +273,11 @@ function App() {
   }, []);
 
   useEffect(() => {
+    const timer = window.setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
     if (authState !== "authenticated") return undefined;
     refresh().catch((error) => setNotice({ tone: "danger", text: error.message }));
     const socket = new WebSocket(`${backendUrl.replace("http", "ws")}/ws`);
@@ -280,6 +296,8 @@ function App() {
   );
   const checkedIn = overview.registrations.filter((registration) => registration.identityVerified).length;
   const ungraded = overview.submissions.filter((submission) => !submission.reviewedAt).length;
+  const activeSessionIds = useMemo(() => new Set(activeSessions.map((session) => session.id)), [activeSessions]);
+  const activeStudents = overview.students.filter((student) => activeSessionIds.has(student.sessionId) && !student.submitted).length;
 
   async function perform(label, action) {
     setBusy(true);
@@ -589,11 +607,13 @@ function App() {
     await perform("Updating learner...", () => jsonFetch(`/api/dashboard/students/${student.id}`, { method: "PUT", body: JSON.stringify({ fullName, studentNumber, email }) }));
   }
 
-  const metrics = [
-    ["Published exams", overview.exams.length, "Assessment templates"],
-    ["Live sessions", activeSessions.length, activeSessions.length ? "Students can enter now" : "No exam released"],
-    ["Checked in", checkedIn, "Verified learners"],
-    ["Awaiting grade", ungraded, "Submissions to review"]
+  const clockTime = currentTime.toLocaleTimeString("en-AU", { timeZone: "Australia/Perth", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+  const clockDate = currentTime.toLocaleDateString("en-AU", { timeZone: "Australia/Perth", weekday: "short", day: "numeric", month: "short" });
+  const statusMetrics = [
+    { type: "students", label: "Active students", value: activeStudents, detail: `${checkedIn} checked in`, tone: activeStudents ? "live" : "quiet", progress: checkedIn ? Math.min(100, activeStudents / checkedIn * 100) : 0 },
+    { type: "exams", label: "Exams", value: overview.exams.length, detail: `${overview.exams.reduce((sum, exam) => sum + (exam.questions?.length || 0), 0)} questions ready`, tone: "exams", progress: Math.min(100, overview.exams.length * 16) },
+    { type: "sessions", label: "Sessions", value: activeSessions.length, detail: `${overview.sessions.length} total · ${activeSessions.length} live`, tone: activeSessions.length ? "live" : "sessions", progress: overview.sessions.length ? activeSessions.length / overview.sessions.length * 100 : 0 },
+    { type: "clock", label: "Perth time", value: clockTime, detail: clockDate, tone: "clock", progress: currentTime.getSeconds() / 60 * 100 }
   ];
 
   if (authState !== "authenticated") {
@@ -617,7 +637,7 @@ function App() {
         <div className={`notice notice-${notice.tone}`}>{notice.text}</div>
 
         {activeView === "overview" && <>
-          <section className="metric-grid">{metrics.map(([label, value, copy]) => <article className="metric-card" key={label}><span>{label}</span><strong>{value}</strong><p>{copy}</p></article>)}</section>
+          <section className="status-board" aria-label="Current examination status">{statusMetrics.map((metric) => <article className={`status-visual status-visual-${metric.tone}`} key={metric.label}><div className="status-visual-top"><span className="status-icon"><DashboardIcon type={metric.type} /></span><span className={`status-pulse ${metric.tone === "live" ? "is-live" : ""}`}>{metric.tone === "live" ? "Live" : metric.type === "clock" ? "Now" : "Ready"}</span></div><div className="status-visual-copy"><span>{metric.label}</span><strong className={metric.type === "clock" ? "clock-value" : ""}>{metric.value}</strong><p>{metric.detail}</p></div><div className="status-meter"><span style={{ width: `${metric.progress}%` }}></span></div></article>)}</section>
           <section className="split-grid">
             <article className="surface feature-surface"><p className="eyebrow">Recommended next step</p><h2>{activeSessions.length ? "Monitor the live room" : overview.exams.length ? "Create and release a session" : "Import your first coding exam"}</h2><p>{activeSessions.length ? "Watch learner activity and collect submissions from the live monitoring view." : "Use a prepared CSV, JSON, Word file, or build questions manually."}</p><button className="button primary" onClick={() => setActiveView(activeSessions.length ? "monitor" : overview.exams.length ? "sessions" : "exams")}>Continue workflow</button></article>
             <article className="surface"><div className="section-title"><div><p className="eyebrow">Live room</p><h2>Session status</h2></div><Status tone={activeSessions.length ? "success" : "neutral"}>{activeSessions.length ? "Released" : "Standby"}</Status></div>
