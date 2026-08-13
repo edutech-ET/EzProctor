@@ -104,7 +104,7 @@ npm run build:student
 Installer output:
 
 ```text
-dist/EzProctor-Exam-Student-0.1.0-Setup.exe
+dist/EzProctor-Exam-Student-0.1.0.msi
 ```
 
 Install it on each student PC using a standard Windows user account. Confirm Python and/or Rust execution before the exam day.

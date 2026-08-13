@@ -1,6 +1,9 @@
 node_modules/
 dist/
 build/
+!build/
+build/*
+!build/ezproctor.ico
 .codex/
 .electron-cache/
 dist-final/

@@ -6,7 +6,7 @@ This guide configures a computer laboratory where one educator server and many W
 
 Do **not** install Electron, Node.js, Python, Rust, Docker, or the EzProctor source code on each student workstation.
 
-The generated `EzProctor-Exam-Student-Setup.exe` includes Electron and is preconfigured with the central educator server address. Python and Rust code execute on the central EzProctor server. Workstations only need:
+The generated `EzProctor-Exam-Student-0.1.0.msi` includes Electron and is preconfigured with the central educator server address. Python and Rust code execute on the central EzProctor server. Workstations only need:
 
 - Windows 10 or 11, 64-bit
 - A connection to the same trusted network as the educator server
@@ -121,7 +121,7 @@ npm run build:workstation:signed
 Output:
 
 ```text
-dist/EzProctor-Exam-Student-0.1.0-Setup.exe
+dist/EzProctor-Exam-Student-0.1.0.msi
 ```
 
 The build fails if the configuration is missing or points to localhost. The generated `electron/workstation-resources/workstation-config.json` is local, ignored by Git, and bundled only into the installer.
@@ -130,10 +130,22 @@ The build fails if the configuration is missing or points to localhost. The gene
 
 On each student PC:
 
-1. Copy or centrally deploy `EzProctor-Exam-Student-0.1.0-Setup.exe`.
+1. Copy or centrally deploy `EzProctor-Exam-Student-0.1.0.msi`.
 2. Run the installer.
 3. Launch **EzProctor Exam Student** from the Start menu or desktop shortcut.
 4. Confirm the student check-in page opens from the educator server.
+
+For a silent managed installation, run from an elevated terminal:
+
+```powershell
+msiexec.exe /i "EzProctor-Exam-Student-0.1.0.msi" /qn /norestart
+```
+
+For a silent uninstall, use the MSI product code from the endpoint-management platform or Windows Installer inventory:
+
+```powershell
+msiexec.exe /x "{PRODUCT-CODE}" /qn /norestart
+```
 
 No server URL, Electron, browser extension, compiler, source code, `.env`, or command-line setup is required on the workstation.
 

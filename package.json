@@ -2,6 +2,7 @@
   "name": "cloudide-secure-pro",
   "version": "0.1.0",
   "private": true,
+  "author": "EoeTech",
   "description": "Desktop coding exam platform with proctored lockdown, monitoring, and teacher dashboard.",
   "main": "electron/src/main.js",
   "workspaces": [
@@ -15,9 +16,9 @@
     "dev:dashboard": "npm --workspace dashboard run dev",
     "dev:electron": "wait-on tcp:5173 tcp:8787 && cross-env CLOUDIDE_SECURE_BACKEND_URL=http://localhost:8787 CLOUDIDE_SECURE_DASHBOARD_URL=http://localhost:5173 electron .",
     "build": "npm run build:dashboard && electron-builder",
-    "build:student": "npm run build:dashboard && electron-builder --win nsis",
+    "build:student": "npm run build:dashboard && electron-builder --win msi",
     "configure:workstation": "node scripts/configure-workstation.js",
-    "build:workstation": "node scripts/verify-workstation-config.js && npm run build:dashboard && electron-builder --win nsis --config.win.signAndEditExecutable=false",
+    "build:workstation": "node scripts/verify-workstation-config.js && npm run build:dashboard && electron-builder --win msi --config.win.signAndEditExecutable=false",
     "build:workstation:signed": "node scripts/verify-workstation-config.js && npm run build:student",
     "build:dashboard": "npm --workspace dashboard run build",
     "build:native": "npm --workspace native/keyboard-hook run build",
@@ -42,7 +43,7 @@
     "directories": {
       "output": "dist"
     },
-    "artifactName": "EzProctor-Exam-Student-${version}-Setup.${ext}",
+    "artifactName": "EzProctor-Exam-Student-${version}.${ext}",
     "files": [
       "electron/**/*",
       "backend/**/*",
@@ -60,7 +61,8 @@
       }
     ],
     "win": {
-      "target": "nsis"
+      "target": "msi",
+      "icon": "build/ezproctor.ico"
     },
     "protocols": [
       {
@@ -70,10 +72,10 @@
         ]
       }
     ],
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": false,
-      "perMachine": false,
+    "msi": {
+      "perMachine": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
       "shortcutName": "EzProctor Exam Student"
     }
   }
