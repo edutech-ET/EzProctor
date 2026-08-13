@@ -11,6 +11,9 @@ services:
       CLOUDIDE_SECURE_DATA_DIR: /app/backend/data
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      EDUCATOR_USERNAME: ${EDUCATOR_USERNAME:-ezproctor}
+      EDUCATOR_PASSWORD: ${EDUCATOR_PASSWORD:-admin@123}
+      EDUCATOR_SESSION_HOURS: ${EDUCATOR_SESSION_HOURS:-8}
     volumes:
       - ezproctor_data:/app/backend/data
     healthcheck:

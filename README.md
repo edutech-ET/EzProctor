@@ -15,6 +15,8 @@ docker compose up -d --build
 
 Open the educator console at `http://localhost:8787/admin-app/` and the student check-in page at `http://localhost:8787/exam-mode`.
 
+Default educator login for initial setup: `ezproctor` / `admin@123`. Change these values in `.env` before production use.
+
 ## Product Videos
 
 | Walkthrough | Description |

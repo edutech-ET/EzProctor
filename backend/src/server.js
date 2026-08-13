@@ -73,10 +73,66 @@ try {
 const app = express();
 const port = Number(process.env.BACKEND_PORT || 8787);
 const dashboardOrigin = process.env.DASHBOARD_ALLOWED_ORIGIN || "http://localhost:5173";
+const educatorUsername = process.env.EDUCATOR_USERNAME || "ezproctor";
+const defaultEducatorHash = "60b317a2999162d539401c8a1f004df0126ddf2d059de019d5062da8eaf8fd2d";
+const educatorSessions = new Map();
+const educatorSessionHours = Number(process.env.EDUCATOR_SESSION_HOURS || 8);
 
-app.use(cors({ origin: [dashboardOrigin, true] }));
+app.use(cors({ origin: [dashboardOrigin, true], credentials: true }));
 app.use(express.json({ limit: "12mb" }));
 app.use(express.static(publicDir));
+
+function cookiesFromRequest(req) {
+  return Object.fromEntries(String(req.headers.cookie || "").split(";").map((entry) => entry.trim().split(/=(.*)/s)).filter(([key]) => key));
+}
+
+function validEducatorSession(req) {
+  const token = cookiesFromRequest(req).ezproctor_educator;
+  const session = token ? educatorSessions.get(token) : null;
+  if (!session || session.expiresAt <= Date.now()) {
+    if (token) educatorSessions.delete(token);
+    return null;
+  }
+  return session;
+}
+
+function passwordMatches(password) {
+  const candidate = crypto.scryptSync(String(password || ""), "ezproctor-educator-v1", 32);
+  const expected = process.env.EDUCATOR_PASSWORD
+    ? crypto.scryptSync(process.env.EDUCATOR_PASSWORD, "ezproctor-educator-v1", 32)
+    : Buffer.from(defaultEducatorHash, "hex");
+  return crypto.timingSafeEqual(candidate, expected);
+}
+
+app.post("/api/educator-auth/login", (req, res) => {
+  if (String(req.body.username || "") !== educatorUsername || !passwordMatches(req.body.password)) {
+    res.status(401).json({ error: "Incorrect educator username or password." });
+    return;
+  }
+  const token = crypto.randomBytes(32).toString("hex");
+  const expiresAt = Date.now() + educatorSessionHours * 60 * 60 * 1000;
+  educatorSessions.set(token, { username: educatorUsername, expiresAt });
+  res.setHeader("Set-Cookie", `ezproctor_educator=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${educatorSessionHours * 3600}`);
+  res.json({ authenticated: true, username: educatorUsername, expiresAt: new Date(expiresAt).toISOString() });
+});
+
+app.get("/api/educator-auth/session", (req, res) => {
+  const session = validEducatorSession(req);
+  if (!session) return res.status(401).json({ authenticated: false });
+  res.json({ authenticated: true, username: session.username, expiresAt: new Date(session.expiresAt).toISOString() });
+});
+
+app.post("/api/educator-auth/logout", (req, res) => {
+  const token = cookiesFromRequest(req).ezproctor_educator;
+  if (token) educatorSessions.delete(token);
+  res.setHeader("Set-Cookie", "ezproctor_educator=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0");
+  res.json({ authenticated: false });
+});
+
+app.use("/api/dashboard", (req, res, next) => {
+  if (!validEducatorSession(req)) return res.status(401).json({ error: "Educator login required." });
+  next();
+});
 
 app.get("/", (_req, res) => {
   res.sendFile(path.resolve(publicDir, "index.html"));
@@ -1108,7 +1164,18 @@ app.post("/api/exam/submit", (req, res) => {
 });
 
 const server = http.createServer(app);
-const wss = new WebSocketServer({ server, path: "/ws" });
+const wss = new WebSocketServer({ noServer: true });
+
+server.on("upgrade", (request, socket, head) => {
+  const pathname = new URL(request.url, "http://localhost").pathname;
+  if (pathname !== "/ws") return socket.destroy();
+  if (!validEducatorSession(request)) {
+    socket.write("HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n");
+    socket.destroy();
+    return;
+  }
+  wss.handleUpgrade(request, socket, head, (webSocket) => wss.emit("connection", webSocket, request));
+});
 
 function broadcast(type, payload) {
   const message = JSON.stringify({ type, payload });

@@ -34,6 +34,13 @@ Open:
 - Student check-in: `http://localhost:8787/exam-mode`
 - Health check: `http://localhost:8787/health`
 
+Default educator login:
+
+- Username: `ezproctor`
+- Password: `admin@123`
+
+Set `EDUCATOR_USERNAME` and `EDUCATOR_PASSWORD` in `.env` before production use.
+
 Verify deployment:
 
 ```bash
@@ -60,6 +67,9 @@ Copy `.env.example` to `.env`. Never commit `.env`.
 - `BACKEND_PORT`: backend port; default `8787`.
 - `OPENAI_API_KEY`: optional; enables AI-assisted question generation.
 - `OPENAI_MODEL`: optional OpenAI model name.
+- `EDUCATOR_USERNAME`: educator console username.
+- `EDUCATOR_PASSWORD`: educator console password. Change the default before production use.
+- `EDUCATOR_SESSION_HOURS`: educator login lifetime; default `8` hours.
 - `CLOUDIDE_SECURE_DATA_DIR`: internal compatibility variable for persistent database storage.
 
 The Docker volume `ezproctor_data` keeps exams, sessions, students, answers, and grades across container restarts.

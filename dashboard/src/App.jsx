@@ -68,9 +68,13 @@ function inferQuestionFormat(question = {}) {
 async function jsonFetch(path, options = {}) {
   const response = await fetch(`${backendUrl}${path}`, {
     ...options,
+    credentials: "include",
     headers: { "Content-Type": "application/json", ...(options.headers || {}) }
   });
   const payload = await response.json().catch(() => ({}));
+  if (response.status === 401 && path.startsWith("/api/dashboard")) {
+    window.dispatchEvent(new Event("ezproctor-auth-expired"));
+  }
   if (!response.ok) throw new Error(payload.error || `Request failed (${response.status})`);
   return payload;
 }
@@ -196,6 +200,9 @@ function Empty({ title, copy }) {
 }
 
 function App() {
+  const [authState, setAuthState] = useState("checking");
+  const [loginForm, setLoginForm] = useState({ username: "", password: "" });
+  const [loginError, setLoginError] = useState("");
   const [activeView, setActiveView] = useState("overview");
   const [overview, setOverview] = useState({ exams: [], sessions: [], roster: [], registrations: [], students: [], submissions: [] });
   const [socketState, setSocketState] = useState("Connecting");
@@ -214,6 +221,24 @@ function App() {
   const [gradeForm, setGradeForm] = useState({ gradeScore: "", gradeStatus: "Pending Review", teacherFeedback: "" });
   const [questionGrades, setQuestionGrades] = useState({});
 
+  async function loginEducator(event) {
+    event.preventDefault();
+    setLoginError("");
+    try {
+      await jsonFetch("/api/educator-auth/login", { method: "POST", body: JSON.stringify(loginForm) });
+      setLoginForm({ username: "", password: "" });
+      setAuthState("authenticated");
+    } catch (error) {
+      setLoginError(error.message);
+    }
+  }
+
+  async function logoutEducator() {
+    await jsonFetch("/api/educator-auth/logout", { method: "POST" }).catch(() => {});
+    setAuthState("anonymous");
+    setOverview({ exams: [], sessions: [], roster: [], registrations: [], students: [], submissions: [] });
+  }
+
   const refresh = useCallback(async () => {
     const data = await jsonFetch("/api/dashboard/overview");
     setOverview({
@@ -225,6 +250,19 @@ function App() {
   }, []);
 
   useEffect(() => {
+    jsonFetch("/api/educator-auth/session")
+      .then(() => setAuthState("authenticated"))
+      .catch(() => setAuthState("anonymous"));
+  }, []);
+
+  useEffect(() => {
+    const expireSession = () => setAuthState("anonymous");
+    window.addEventListener("ezproctor-auth-expired", expireSession);
+    return () => window.removeEventListener("ezproctor-auth-expired", expireSession);
+  }, []);
+
+  useEffect(() => {
+    if (authState !== "authenticated") return undefined;
     refresh().catch((error) => setNotice({ tone: "danger", text: error.message }));
     const socket = new WebSocket(`${backendUrl.replace("http", "ws")}/ws`);
     socket.onopen = () => setSocketState("Live");
@@ -232,7 +270,7 @@ function App() {
     socket.onerror = () => setSocketState("Offline");
     socket.onclose = () => setSocketState("Offline");
     return () => socket.close();
-  }, [refresh]);
+  }, [authState, refresh]);
 
   const activeSessions = useMemo(() => overview.sessions.filter((session) => session.status === "Active"), [overview.sessions]);
   const selectedSession = overview.sessions.find((session) => session.id === selectedSessionId) || null;
@@ -558,12 +596,16 @@ function App() {
     ["Awaiting grade", ungraded, "Submissions to review"]
   ];
 
+  if (authState !== "authenticated") {
+    return <main className="educator-login-shell"><section className="educator-login-card"><div className="login-brand"><span>EZ</span><div><strong>EzProctor</strong><small>Exam</small></div></div>{authState === "checking" ? <div className="login-checking"><span></span><p>Checking educator session...</p></div> : <form onSubmit={loginEducator}><p className="eyebrow">Educator access</p><h1>Welcome back.</h1><p>Sign in to manage exams, sessions, submissions, and grades.</p><label>Username<input autoFocus required autoComplete="username" value={loginForm.username} onChange={(event) => setLoginForm({ ...loginForm, username: event.target.value })} /></label><label>Password<input required type="password" autoComplete="current-password" value={loginForm.password} onChange={(event) => setLoginForm({ ...loginForm, password: event.target.value })} /></label>{loginError && <div className="login-error">{loginError}</div>}<button className="button primary wide" type="submit">Sign in to Educator Console</button></form>}<footer>Protected educator workspace</footer></section></main>;
+  }
+
   return (
     <div className="educator-app">
       <aside className="app-nav">
         <div className="brand-lockup"><span>EZ</span><div><strong>EzProctor</strong><small>Exam</small></div></div>
         <nav>{navItems.map(([id, label, number]) => <button key={id} className={activeView === id ? "active" : ""} onClick={() => setActiveView(id)}><span>{number}</span>{label}</button>)}</nav>
-        <div className="nav-footer"><Status tone={socketState === "Live" ? "success" : "danger"}>{socketState}</Status><small>Educator Console</small></div>
+        <div className="nav-footer"><Status tone={socketState === "Live" ? "success" : "danger"}>{socketState}</Status><small>Educator Console</small><button className="nav-logout" onClick={logoutEducator}>Sign out</button></div>
       </aside>
 
       <main className="app-main">
