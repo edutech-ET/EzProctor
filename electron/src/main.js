@@ -10,9 +10,23 @@ try {
 const nativeHook = require("./services/nativeHook");
 const { createExamRuntimeScript } = require("./services/examRuntime");
 
+function readWorkstationConfig() {
+  const candidates = [
+    path.resolve(process.resourcesPath || "", "workstation-config.json"),
+    path.resolve(__dirname, "..", "workstation-resources", "workstation-config.json")
+  ];
+  try {
+    const configPath = candidates.find((candidate) => fs.existsSync(candidate));
+    return configPath ? JSON.parse(fs.readFileSync(configPath, "utf8")) : {};
+  } catch (_error) {
+    return {};
+  }
+}
+
 const isDev = !app.isPackaged;
 const enableDevTools = process.env.ENABLE_SECURE_DEVTOOLS === "true";
-const backendUrl = process.env.CLOUDIDE_SECURE_BACKEND_URL || "http://localhost:8787";
+const workstationConfig = readWorkstationConfig();
+const backendUrl = process.env.CLOUDIDE_SECURE_BACKEND_URL || workstationConfig.serverUrl || "http://localhost:8787";
 const cloudideBaseUrl = process.env.CLOUDIDE_BASE_URL || backendUrl;
 const cloudideExamPath = process.env.CLOUDIDE_EXAM_PATH || "/ide";
 const allowedOrigin = process.env.CLOUDIDE_ALLOWED_ORIGIN || cloudideBaseUrl;
@@ -325,7 +339,7 @@ async function startExamWindow() {
       embeddedBackend = startServer(Number(process.env.BACKEND_PORT || 8787));
     }
 
-    updateBootState({ phase: "backend", message: "Starting local backend..." });
+    updateBootState({ phase: "backend", message: `Connecting to exam server ${backendUrl}...` });
     const backendReady = await waitForBackendReady();
     if (!backendReady) {
       throw new Error(`Backend did not become ready at ${backendUrl}/health`);
@@ -357,7 +371,9 @@ async function startExamWindow() {
 }
 
 function shouldStartEmbeddedBackend() {
-  return app.isPackaged || process.env.START_EMBEDDED_BACKEND === "true";
+  if (process.env.START_EMBEDDED_BACKEND === "true") return true;
+  if (process.env.START_EMBEDDED_BACKEND === "false") return false;
+  return app.isPackaged && !workstationConfig.serverUrl;
 }
 
 async function unlockAndClose(reason = "exit") {

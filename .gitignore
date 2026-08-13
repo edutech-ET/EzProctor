@@ -5,6 +5,7 @@ build/
 .electron-cache/
 dist-final/
 electron/.runtime/
+electron/workstation-resources/workstation-config.json
 .env
 .env.local
 coverage/

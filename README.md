@@ -31,6 +31,7 @@ GitHub displays MP4 links as downloadable/playable repository assets.
 
 - [Installation Guide](docs/INSTALLATION_GUIDE.md)
 - [Implementation Guide](docs/IMPLEMENTATION_GUIDE.md)
+- [Workstation Setup Guide](docs/WORKSTATION_SETUP_GUIDE.md)
 - [Role-Based User Guide](docs/USER_GUIDE.md)
 
 ## Core Capabilities

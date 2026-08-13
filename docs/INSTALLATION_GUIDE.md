@@ -92,6 +92,8 @@ npm run dev
 
 ## 5. Windows Student Installer
 
+For a same-network computer laboratory and zero-setup student PCs, follow the dedicated [Workstation Setup Guide](WORKSTATION_SETUP_GUIDE.md).
+
 Build the Electron student client:
 
 ```powershell
