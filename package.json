@@ -2,7 +2,8 @@
   "name": "cloudide-secure-pro",
   "version": "0.1.0",
   "private": true,
-  "author": "EoeTech",
+  "author": "Ejoe Tso",
+  "license": "SEE LICENSE IN LICENSE",
   "description": "Desktop coding exam platform with proctored lockdown, monitoring, and teacher dashboard.",
   "main": "electron/src/main.js",
   "workspaces": [

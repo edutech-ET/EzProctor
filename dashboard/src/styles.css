@@ -308,3 +308,18 @@ input:focus, select:focus, textarea:focus { border-color: var(--forest-2); box-s
   .mini-metrics { flex-wrap: wrap; }
   .grading-summary { grid-template-columns: 1fr; }
 }
+.activation-card {
+  width: min(560px, calc(100vw - 32px));
+}
+
+.activation-request {
+  display: block;
+  margin-top: 16px;
+  color: var(--green-700, #175947);
+  font-weight: 700;
+  text-align: center;
+}
+
+.activation-request:hover {
+  text-decoration: underline;
+}

@@ -34,6 +34,8 @@ Open:
 - Student check-in: `http://localhost:8787/exam-mode`
 - Health check: `http://localhost:8787/health`
 
+The first educator-console visit opens platform activation. Request a free educational institution key from `eozoe2025@gmail.com`, enter the institution details and key, then continue to educator login. One activation covers the central server and all connected student workstations.
+
 Default educator login:
 
 - Username: `ezproctor`
@@ -73,6 +75,9 @@ Copy `.env.example` to `.env`. Never commit `.env`.
 - `CLOUDIDE_SECURE_DATA_DIR`: internal compatibility variable for persistent database storage.
 
 The Docker volume `ezproctor_data` keeps exams, sessions, students, answers, and grades across container restarts.
+It also stores `activation.json`; include this volume in backups to preserve activation during upgrades.
+
+See the [Activation Guide](ACTIVATION_GUIDE.md) for key requests, first-run activation, and troubleshooting.
 
 ## 4. Native Development Installation
 

@@ -15,6 +15,8 @@ docker compose up -d --build
 
 Open the educator console at `http://localhost:8787/admin-app/` and the student check-in page at `http://localhost:8787/exam-mode`.
 
+On first launch, activate the central EzProctor server with an educational institution key. Request a free key from [eozoe2025@gmail.com](mailto:eozoe2025@gmail.com?subject=EzProctor%20Educational%20Activation%20Key%20Request), then enter the institution name, contact email, and key on the activation screen. Student workstations do not need separate keys.
+
 Default educator login for initial setup: `ezproctor` / `admin@123`. Change these values in `.env` before production use.
 
 ## Product Videos
@@ -32,6 +34,7 @@ GitHub displays MP4 links as downloadable/playable repository assets.
 - [Installation Guide](docs/INSTALLATION_GUIDE.md)
 - [Implementation Guide](docs/IMPLEMENTATION_GUIDE.md)
 - [Workstation Setup Guide](docs/WORKSTATION_SETUP_GUIDE.md)
+- [Activation Guide](docs/ACTIVATION_GUIDE.md)
 - [Role-Based User Guide](docs/USER_GUIDE.md)
 
 ## Core Capabilities
@@ -111,4 +114,6 @@ A full Docker image build additionally requires a running Docker engine.
 
 ## License
 
-No open-source license has been selected yet. All rights are reserved until the project owner adds a license file.
+Copyright © 2026 Ejoe Tso.
+
+The repository is public and source-available. EzProctor is free for licensed educational institutions, but activation is required and commercial redistribution or paid hosted use requires written permission. Because these conditions restrict fields of use, this is not an OSI-approved open-source license. See [LICENSE](LICENSE) and the [Activation Guide](docs/ACTIVATION_GUIDE.md).

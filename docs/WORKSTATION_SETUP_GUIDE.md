@@ -6,6 +6,8 @@ This guide configures a computer laboratory where one educator server and many W
 
 Do **not** install Electron, Node.js, Python, Rust, Docker, or the EzProctor source code on each student workstation.
 
+Activate the central educator server before deploying workstations. Student PCs do not require individual activation keys.
+
 The generated `EzProctor-Exam-Student-0.1.0.msi` includes Electron and is preconfigured with the central educator server address. Python and Rust code execute on the central EzProctor server. Workstations only need:
 
 - Windows 10 or 11, 64-bit

@@ -14,6 +14,7 @@ const { generateQuestionsWithAI, importQuestionsFromDocument } = require("./aiQu
 const { suggestQuestionGrade } = require("./gradingAssistant");
 const { mapModelAnswers, parseModelAnswers } = require("./modelAnswerImporter");
 const { createAnswerBookPdf } = require("./answerBookPdf");
+const { activatePlatform, activationStatus } = require("./licenseManager");
 const {
   approveRegistration,
   buildAnswerBook,
@@ -77,10 +78,53 @@ const educatorUsername = process.env.EDUCATOR_USERNAME || "ezproctor";
 const defaultEducatorHash = "60b317a2999162d539401c8a1f004df0126ddf2d059de019d5062da8eaf8fd2d";
 const educatorSessions = new Map();
 const educatorSessionHours = Number(process.env.EDUCATOR_SESSION_HOURS || 8);
+const activationAttempts = new Map();
 
 app.use(cors({ origin: [dashboardOrigin, true], credentials: true }));
 app.use(express.json({ limit: "12mb" }));
+app.use((req, res, next) => {
+  if (["/exam-mode.html", "/ide.html", "/admin.html"].includes(req.path) && !activationStatus().activated) {
+    return res.redirect("/admin-app/?activation=required");
+  }
+  next();
+});
 app.use(express.static(publicDir));
+
+app.get("/api/activation/status", (_req, res) => {
+  res.json(activationStatus());
+});
+
+app.post("/api/activation", (req, res) => {
+  const attemptKey = req.ip || req.socket.remoteAddress || "unknown";
+  const attempt = activationAttempts.get(attemptKey) || { count: 0, resetAt: Date.now() + 15 * 60 * 1000 };
+  if (attempt.resetAt <= Date.now()) {
+    attempt.count = 0;
+    attempt.resetAt = Date.now() + 15 * 60 * 1000;
+  }
+  if (attempt.count >= 10) {
+    return res.status(429).json({ error: "Too many activation attempts. Try again in 15 minutes." });
+  }
+  attempt.count += 1;
+  activationAttempts.set(attemptKey, attempt);
+  try {
+    const status = activatePlatform(req.body || {});
+    activationAttempts.delete(attemptKey);
+    res.json(status);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.use("/api", (req, res, next) => {
+  if (!activationStatus().activated) {
+    return res.status(402).json({
+      error: "EzProctor must be activated by an educational institution before use.",
+      activationRequired: true,
+      requestKeyEmail: "eozoe2025@gmail.com"
+    });
+  }
+  next();
+});
 
 function cookiesFromRequest(req) {
   return Object.fromEntries(String(req.headers.cookie || "").split(";").map((entry) => entry.trim().split(/=(.*)/s)).filter(([key]) => key));
@@ -138,11 +182,16 @@ app.get("/", (_req, res) => {
   res.sendFile(path.resolve(publicDir, "index.html"));
 });
 
-app.get("/exam-mode", (_req, res) => {
+function requireActivatedPage(req, res, next) {
+  if (!activationStatus().activated) return res.redirect("/admin-app/?activation=required");
+  next();
+}
+
+app.get("/exam-mode", requireActivatedPage, (_req, res) => {
   res.sendFile(path.resolve(publicDir, "exam-mode.html"));
 });
 
-app.get("/ide", (_req, res) => {
+app.get("/ide", requireActivatedPage, (_req, res) => {
   res.sendFile(path.resolve(publicDir, "ide.html"));
 });
 
@@ -1169,6 +1218,11 @@ const wss = new WebSocketServer({ noServer: true });
 server.on("upgrade", (request, socket, head) => {
   const pathname = new URL(request.url, "http://localhost").pathname;
   if (pathname !== "/ws") return socket.destroy();
+  if (!activationStatus().activated) {
+    socket.write("HTTP/1.1 402 Payment Required\r\nConnection: close\r\n\r\n");
+    socket.destroy();
+    return;
+  }
   if (!validEducatorSession(request)) {
     socket.write("HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n");
     socket.destroy();

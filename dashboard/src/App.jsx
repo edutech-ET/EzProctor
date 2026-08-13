@@ -210,6 +210,9 @@ function DashboardIcon({ type }) {
 }
 
 function App() {
+  const [activationState, setActivationState] = useState("checking");
+  const [activationForm, setActivationForm] = useState({ institution: "", contactEmail: "", key: "" });
+  const [activationError, setActivationError] = useState("");
   const [authState, setAuthState] = useState("checking");
   const [loginForm, setLoginForm] = useState({ username: "", password: "" });
   const [loginError, setLoginError] = useState("");
@@ -231,6 +234,18 @@ function App() {
   const [gradeForm, setGradeForm] = useState({ gradeScore: "", gradeStatus: "Pending Review", teacherFeedback: "" });
   const [questionGrades, setQuestionGrades] = useState({});
   const [currentTime, setCurrentTime] = useState(() => new Date());
+
+  async function activate(event) {
+    event.preventDefault();
+    setActivationError("");
+    try {
+      await jsonFetch("/api/activation", { method: "POST", body: JSON.stringify(activationForm) });
+      setActivationForm({ institution: "", contactEmail: "", key: "" });
+      setActivationState("activated");
+    } catch (error) {
+      setActivationError(error.message);
+    }
+  }
 
   async function loginEducator(event) {
     event.preventDefault();
@@ -261,9 +276,18 @@ function App() {
   }, []);
 
   useEffect(() => {
-    jsonFetch("/api/educator-auth/session")
-      .then(() => setAuthState("authenticated"))
-      .catch(() => setAuthState("anonymous"));
+    jsonFetch("/api/activation/status")
+      .then((status) => {
+        setActivationState(status.activated ? "activated" : "required");
+        if (status.activated) {
+          jsonFetch("/api/educator-auth/session")
+            .then(() => setAuthState("authenticated"))
+            .catch(() => setAuthState("anonymous"));
+        } else {
+          setAuthState("anonymous");
+        }
+      })
+      .catch(() => setActivationState("required"));
   }, []);
 
   useEffect(() => {
@@ -616,8 +640,12 @@ function App() {
     { type: "clock", label: "Perth time", value: clockTime, detail: clockDate, tone: "clock", progress: currentTime.getSeconds() / 60 * 100 }
   ];
 
+  if (activationState !== "activated") {
+    return <main className="educator-login-shell"><section className="educator-login-card activation-card"><div className="login-brand"><span>EZ</span><div><strong>EzProctor</strong><small>Exam</small></div></div>{activationState === "checking" ? <div className="login-checking"><span></span><p>Checking platform activation...</p></div> : <form onSubmit={activate}><p className="eyebrow">Educational license</p><h1>Activate EzProctor.</h1><p>Enter the activation key issued to your educational institution. Activation is required once per server installation.</p><label>Institution name<input autoFocus required value={activationForm.institution} onChange={(event) => setActivationForm({ ...activationForm, institution: event.target.value })} placeholder="Example University" /></label><label>Contact email<input type="email" value={activationForm.contactEmail} onChange={(event) => setActivationForm({ ...activationForm, contactEmail: event.target.value })} placeholder="it@example.edu" /></label><label>Activation key<input required autoComplete="off" value={activationForm.key} onChange={(event) => setActivationForm({ ...activationForm, key: event.target.value.toUpperCase() })} placeholder="EZEDU-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX" /></label>{activationError && <div className="login-error">{activationError}</div>}<button className="button primary wide" type="submit">Activate platform</button><a className="activation-request" href="mailto:eozoe2025@gmail.com?subject=EzProctor%20Educational%20Activation%20Key%20Request&body=Institution%20name%3A%0ACountry%3A%0AContact%20name%3A%0AEducational%20use%3A%0A">Request a free educational key</a></form>}<footer>Copyright © 2026 Ejoe Tso · Free for licensed educational institutions</footer></section></main>;
+  }
+
   if (authState !== "authenticated") {
-    return <main className="educator-login-shell"><section className="educator-login-card"><div className="login-brand"><span>EZ</span><div><strong>EzProctor</strong><small>Exam</small></div></div>{authState === "checking" ? <div className="login-checking"><span></span><p>Checking educator session...</p></div> : <form onSubmit={loginEducator}><p className="eyebrow">Educator access</p><h1>Welcome back.</h1><p>Sign in to manage exams, sessions, submissions, and grades.</p><label>Username<input autoFocus required autoComplete="username" value={loginForm.username} onChange={(event) => setLoginForm({ ...loginForm, username: event.target.value })} /></label><label>Password<input required type="password" autoComplete="current-password" value={loginForm.password} onChange={(event) => setLoginForm({ ...loginForm, password: event.target.value })} /></label>{loginError && <div className="login-error">{loginError}</div>}<button className="button primary wide" type="submit">Sign in to Educator Console</button></form>}<footer>Protected educator workspace</footer></section></main>;
+    return <main className="educator-login-shell"><section className="educator-login-card"><div className="login-brand"><span>EZ</span><div><strong>EzProctor</strong><small>Exam</small></div></div>{authState === "checking" ? <div className="login-checking"><span></span><p>Checking educator session...</p></div> : <form onSubmit={loginEducator}><p className="eyebrow">Educator access</p><h1>Welcome back.</h1><p>Sign in to manage exams, sessions, submissions, and grades.</p><label>Username<input autoFocus required autoComplete="username" value={loginForm.username} onChange={(event) => setLoginForm({ ...loginForm, username: event.target.value })} /></label><label>Password<input required type="password" autoComplete="current-password" value={loginForm.password} onChange={(event) => setLoginForm({ ...loginForm, password: event.target.value })} /></label>{loginError && <div className="login-error">{loginError}</div>}<button className="button primary wide" type="submit">Sign in to Educator Console</button></form>}<footer>Copyright © 2026 Ejoe Tso · Protected educator workspace</footer></section></main>;
   }
 
   return (
