@@ -109,10 +109,10 @@ npm run build:student
 Installer output:
 
 ```text
-dist/EzProctor-Exam-Student-0.1.0.msi
+dist/EzProctor-Exam-Student-0.1.0-Setup.msi
 ```
 
-Install it on each student PC using a standard Windows user account. Confirm Python and/or Rust execution before the exam day.
+The public installer is available from the [latest GitHub Release](https://github.com/edutech-ET/EzProctor/releases/latest). Install it on each student PC. On first launch, enter the central EzProctor server URL, then confirm Python and/or Rust execution before exam day.
 
 ## 6. Upgrade and Backup
 

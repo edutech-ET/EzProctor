@@ -82,6 +82,31 @@
       button[hidden] {
         display: none;
       }
+
+      .configuration {
+        display: grid;
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      .configuration[hidden] {
+        display: none;
+      }
+
+      input {
+        box-sizing: border-box;
+        width: 100%;
+        padding: 13px 15px;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        border-radius: 12px;
+        background: #0f172a;
+        color: #e2e8f0;
+        font: inherit;
+      }
+
+      .error {
+        color: #fca5a5;
+      }
     </style>
   </head>
   <body>
@@ -93,6 +118,12 @@
         <div class="message" id="message">Preparing secure exam environment...</div>
         <div class="meta" id="meta"></div>
       </section>
+      <form class="configuration" id="configuration" hidden>
+        <label for="serverUrl">Exam server address</label>
+        <input id="serverUrl" type="url" required placeholder="http://192.168.1.10:8787" />
+        <button type="submit">Save and connect</button>
+        <span class="error" id="configurationError"></span>
+      </form>
       <button id="retry" hidden>Retry startup</button>
     </main>
     <script>
@@ -100,6 +131,9 @@
       const messageElement = document.getElementById("message");
       const metaElement = document.getElementById("meta");
       const retryButton = document.getElementById("retry");
+      const configurationForm = document.getElementById("configuration");
+      const serverUrlInput = document.getElementById("serverUrl");
+      const configurationError = document.getElementById("configurationError");
 
       function renderState(state) {
         phaseElement.textContent = state.phase || "Starting";
@@ -113,6 +147,7 @@
         }
         metaElement.textContent = meta.join(" | ");
         retryButton.hidden = state.phase !== "error";
+        configurationForm.hidden = state.phase !== "configuration";
       }
 
       window.secureClient.onBootState((state) => renderState(state || {}));
@@ -124,6 +159,12 @@
         } finally {
           retryButton.disabled = false;
         }
+      });
+      configurationForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        configurationError.textContent = "";
+        const result = await window.secureClient.configureServer(serverUrlInput.value);
+        if (!result.ok) configurationError.textContent = result.error;
       });
     </script>
   </body>

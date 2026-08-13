@@ -19,8 +19,10 @@
     "build": "npm run build:dashboard && electron-builder",
     "build:student": "npm run build:dashboard && electron-builder --win msi",
     "configure:workstation": "node scripts/configure-workstation.js",
+    "configure:workstation:public": "node scripts/configure-public-workstation.js",
     "build:workstation": "node scripts/verify-workstation-config.js && npm run build:dashboard && electron-builder --win msi --config.win.signAndEditExecutable=false",
     "build:workstation:signed": "node scripts/verify-workstation-config.js && npm run build:student",
+    "build:workstation:public": "npm run configure:workstation:public && npm run build:dashboard && electron-builder --win msi --config.win.signAndEditExecutable=false",
     "build:dashboard": "npm --workspace dashboard run build",
     "build:native": "npm --workspace native/keyboard-hook run build",
     "lint": "npm --workspace backend run lint && npm --workspace dashboard run lint"
@@ -44,7 +46,7 @@
     "directories": {
       "output": "dist"
     },
-    "artifactName": "EzProctor-Exam-Student-${version}.${ext}",
+    "artifactName": "EzProctor-Exam-Student-${version}-Setup.${ext}",
     "files": [
       "electron/**/*",
       "backend/**/*",

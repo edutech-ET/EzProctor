@@ -26,10 +26,29 @@ function readWorkstationConfig() {
 const isDev = !app.isPackaged;
 const enableDevTools = process.env.ENABLE_SECURE_DEVTOOLS === "true";
 const workstationConfig = readWorkstationConfig();
-const backendUrl = process.env.CLOUDIDE_SECURE_BACKEND_URL || workstationConfig.serverUrl || "http://localhost:8787";
-const cloudideBaseUrl = process.env.CLOUDIDE_BASE_URL || backendUrl;
+const configuredServerPath = () => path.join(app.getPath("userData"), "workstation-server.json");
+
+function readSavedServerUrl() {
+  try {
+    return JSON.parse(fs.readFileSync(configuredServerPath(), "utf8")).serverUrl || "";
+  } catch (_error) {
+    return "";
+  }
+}
+
+function normalizeServerUrl(value = "") {
+  const server = new URL(String(value).trim());
+  if (!["http:", "https:"].includes(server.protocol)) throw new Error("Use an http:// or https:// server address.");
+  server.pathname = "";
+  server.search = "";
+  server.hash = "";
+  return server.toString().replace(/\/$/, "");
+}
+
+let backendUrl = process.env.CLOUDIDE_SECURE_BACKEND_URL || workstationConfig.serverUrl || readSavedServerUrl() || "";
+let cloudideBaseUrl = process.env.CLOUDIDE_BASE_URL || backendUrl;
 const cloudideExamPath = process.env.CLOUDIDE_EXAM_PATH || "/ide";
-const allowedOrigin = process.env.CLOUDIDE_ALLOWED_ORIGIN || cloudideBaseUrl;
+let allowedOrigin = process.env.CLOUDIDE_ALLOWED_ORIGIN || cloudideBaseUrl;
 const secureSessionToken =
   process.env.CLOUDIDE_SECURE_SESSION_TOKEN || "SECURE_SESSION_TOKEN";
 const protocolName = "cloudidesecure";
@@ -332,6 +351,11 @@ async function startExamWindow() {
   try {
     updateBootState({ phase: "starting", message: "Preparing secure exam environment..." });
 
+    if (workstationConfig.deploymentMode === "central-server" && !backendUrl) {
+      updateBootState({ phase: "configuration", message: "Enter your institution's EzProctor server address." });
+      return;
+    }
+
     if (shouldStartEmbeddedBackend()) {
       logStartup("Starting embedded backend");
       process.env.CLOUDIDE_SECURE_DATA_DIR = path.join(app.getPath("userData"), "backend-data");
@@ -373,7 +397,7 @@ async function startExamWindow() {
 function shouldStartEmbeddedBackend() {
   if (process.env.START_EMBEDDED_BACKEND === "true") return true;
   if (process.env.START_EMBEDDED_BACKEND === "false") return false;
-  return app.isPackaged && !workstationConfig.serverUrl;
+  return app.isPackaged && workstationConfig.deploymentMode !== "central-server" && !backendUrl;
 }
 
 async function unlockAndClose(reason = "exit") {
@@ -454,6 +478,23 @@ ipcMain.handle("secure-client:retry-startup", async () => {
 
   await startExamWindow();
   return { ok: true };
+});
+
+ipcMain.handle("secure-client:configure-server", async (_event, value) => {
+  try {
+    const serverUrl = normalizeServerUrl(value);
+    const response = await fetch(`${serverUrl}/health`);
+    if (!response.ok) throw new Error("The server health check did not succeed.");
+    fs.mkdirSync(path.dirname(configuredServerPath()), { recursive: true });
+    fs.writeFileSync(configuredServerPath(), `${JSON.stringify({ serverUrl }, null, 2)}\n`, { mode: 0o600 });
+    backendUrl = serverUrl;
+    cloudideBaseUrl = serverUrl;
+    allowedOrigin = serverUrl;
+    await startExamWindow();
+    return { ok: true, serverUrl };
+  } catch (error) {
+    return { ok: false, error: `Unable to connect: ${error.message}` };
+  }
 });
 
 app.whenReady().then(async () => {

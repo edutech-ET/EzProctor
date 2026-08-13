@@ -20,5 +20,5 @@ serverUrl.search = "";
 serverUrl.hash = "";
 const outputPath = path.resolve(__dirname, "..", "electron", "workstation-resources", "workstation-config.json");
 fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-fs.writeFileSync(outputPath, `${JSON.stringify({ serverUrl: serverUrl.toString().replace(/\/$/, "") }, null, 2)}\n`);
+fs.writeFileSync(outputPath, `${JSON.stringify({ deploymentMode: "central-server", serverUrl: serverUrl.toString().replace(/\/$/, "") }, null, 2)}\n`);
 console.log(`Workstation installer configured for ${serverUrl.toString().replace(/\/$/, "")}`);

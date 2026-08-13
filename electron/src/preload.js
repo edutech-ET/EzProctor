@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld("secureClient", {
   submitExam: (payload) => ipcRenderer.invoke("secure-client:submit-exam", payload),
   exitExam: (payload) => ipcRenderer.invoke("secure-client:exit-exam", payload),
   retryStartup: () => ipcRenderer.invoke("secure-client:retry-startup"),
+  configureServer: (serverUrl) => ipcRenderer.invoke("secure-client:configure-server", serverUrl),
   onBootState: (listener) => {
     if (typeof listener !== "function") {
       return () => {};

@@ -19,6 +19,10 @@ On first launch, activate the central EzProctor server with an educational insti
 
 Default educator login for initial setup: `ezproctor` / `admin@123`. Change these values in `.env` before production use.
 
+## Student Workstation Download
+
+Download `EzProctor-Exam-Student-0.1.0-Setup.msi` from the [latest GitHub Release](https://github.com/edutech-ET/EzProctor/releases/latest). On first launch, enter the central institution server address, for example `http://192.168.1.10:8787`. Electron and the student client are included in the MSI; no development tools are required on student PCs.
+
 ## Product Videos
 
 | Walkthrough | Description |

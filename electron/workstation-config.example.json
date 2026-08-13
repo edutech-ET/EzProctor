@@ -1,3 +1,4 @@
 {
+  "deploymentMode": "central-server",
   "serverUrl": "http://192.168.8.117:8787"
 }

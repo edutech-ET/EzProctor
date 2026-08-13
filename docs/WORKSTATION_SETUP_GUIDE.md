@@ -8,7 +8,7 @@ Do **not** install Electron, Node.js, Python, Rust, Docker, or the EzProctor sou
 
 Activate the central educator server before deploying workstations. Student PCs do not require individual activation keys.
 
-The generated `EzProctor-Exam-Student-0.1.0.msi` includes Electron and is preconfigured with the central educator server address. Python and Rust code execute on the central EzProctor server. Workstations only need:
+The generated `EzProctor-Exam-Student-0.1.0-Setup.msi` includes Electron. A locally built lab MSI can be preconfigured with the central server address; the public GitHub MSI asks for that address once on first launch. Python and Rust code execute on the central EzProctor server. Workstations only need:
 
 - Windows 10 or 11, 64-bit
 - A connection to the same trusted network as the educator server
@@ -123,7 +123,7 @@ npm run build:workstation:signed
 Output:
 
 ```text
-dist/EzProctor-Exam-Student-0.1.0.msi
+dist/EzProctor-Exam-Student-0.1.0-Setup.msi
 ```
 
 The build fails if the configuration is missing or points to localhost. The generated `electron/workstation-resources/workstation-config.json` is local, ignored by Git, and bundled only into the installer.
@@ -132,15 +132,16 @@ The build fails if the configuration is missing or points to localhost. The gene
 
 On each student PC:
 
-1. Copy or centrally deploy `EzProctor-Exam-Student-0.1.0.msi`.
+1. Download the MSI from the [latest GitHub Release](https://github.com/edutech-ET/EzProctor/releases/latest), or copy the locally preconfigured `EzProctor-Exam-Student-0.1.0-Setup.msi`.
 2. Run the installer.
 3. Launch **EzProctor Exam Student** from the Start menu or desktop shortcut.
-4. Confirm the student check-in page opens from the educator server.
+4. For the public MSI, enter `http://EDUCATOR-PC-IP:8787` once and select **Save and connect**. A preconfigured lab MSI skips this step.
+5. Confirm the student check-in page opens from the educator server.
 
 For a silent managed installation, run from an elevated terminal:
 
 ```powershell
-msiexec.exe /i "EzProctor-Exam-Student-0.1.0.msi" /qn /norestart
+msiexec.exe /i "EzProctor-Exam-Student-0.1.0-Setup.msi" /qn /norestart
 ```
 
 For a silent uninstall, use the MSI product code from the endpoint-management platform or Windows Installer inventory:
@@ -194,7 +195,9 @@ If it fails, check the server IP, Windows Firewall, VLAN/client-isolation rules,
 
 ### Installer points to an old IP
 
-Set a fixed server IP. Re-run `configure:workstation`, rebuild, and redeploy the installer. Workstations should not edit configuration manually.
+For a locally preconfigured installer, set a fixed server IP, re-run `configure:workstation`, rebuild, and redeploy the MSI.
+
+For the public MSI, close the app, remove `%APPDATA%\EzProctor Exam Student\workstation-server.json`, and launch it again to enter the new central server address. IT administrators can perform this reset through endpoint management.
 
 ### Windows SmartScreen warning
 
