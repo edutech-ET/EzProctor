@@ -13,3 +13,10 @@ backend/data/
 dashboard/dist/
 electron/dist/
 native/keyboard-hook/build/
+output/
+tmp/
+*.err.log
+*.out.log
+backend-*.log
+dashboard-*.log
+electron-*.log

@@ -3,13 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CloudIDE Secure Admin</title>
+    <title>EzProctor Exam Admin</title>
     <link rel="stylesheet" href="/admin.css" />
   </head>
   <body>
     <main class="shell">
       <section class="hero">
-        <p class="eyebrow">CloudIDE Secure Pro</p>
+        <p class="eyebrow">EzProctor Exam</p>
         <h1>Teacher Command Center</h1>
         <p class="subcopy">A simpler workflow for preparing exams, launching sessions, watching student activity, and reviewing submissions.</p>
         <div class="status-strip">
@@ -80,8 +80,9 @@
             <div class="ops-form">
               <input id="quickExamTitle" placeholder="Example: Rust Practical Test" />
               <select id="quickExamLanguage">
-                <option>Rust</option>
                 <option>Python</option>
+                <option>HTML</option>
+                <option>Rust</option>
               </select>
               <button id="quickCreateExamButton" type="button">Create Exam</button>
             </div>
@@ -154,9 +155,8 @@
                   <span>Primary language</span>
                   <select name="language">
                     <option>Python</option>
+                    <option>HTML</option>
                     <option>Rust</option>
-                    <option>JavaScript</option>
-                    <option>Java</option>
                   </select>
                 </label>
                 <label class="field">

@@ -13,4 +13,9 @@ backend/data
 electron/dist
 native/keyboard-hook/build
 .codex
+output
+tmp
+docs/videos
+*.err.log
+*.out.log
 

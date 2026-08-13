@@ -3,20 +3,20 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CloudIDE Secure Pro IDE</title>
+    <title>EzProctor Exam IDE</title>
     <link rel="stylesheet" href="/exam-mode.css" />
   </head>
   <body>
     <div class="shell">
       <aside class="sidebar">
         <div>
-          <p class="eyebrow">CloudIDE Secure Pro</p>
+          <p class="eyebrow">EzProctor Exam</p>
           <h1 id="ideTitle">Secure IDE</h1>
           <p class="muted" id="studentLabel">Open IDE mode active.</p>
           <p class="muted" id="timerLabel">Exam timer loading...</p>
           <p class="muted" id="examLabel">Exam paper loading...</p>
         </div>
-        <div class="panel">
+        <div id="filesPanel" class="panel">
           <div class="panel-header">
             <h2>Files</h2>
           </div>
@@ -30,7 +30,6 @@
           <div class="panel-header">
             <h2>Controls</h2>
           </div>
-          <button id="runButton" class="primary">Run Code</button>
           <button id="saveButton" class="secondary">Save Draft</button>
           <button id="submitButton" class="accent">Submit and Exit</button>
           <button id="exitButton" class="danger">Exit and Release Key Lock</button>
@@ -56,14 +55,17 @@
           </div>
         </section>
 
-        <section class="workspace-body">
+        <section id="codingWorkspace" class="workspace-body">
           <section class="editor-panel">
             <div class="toolbar">
               <div>
                 <strong id="activeFileName">main.py</strong>
-                <span class="muted">Secure student IDE</span>
+                <span id="workspacePurpose" class="muted">Official coding answer</span>
               </div>
-              <span id="saveState" class="status-chip">Loading</span>
+              <div class="editor-actions">
+                <span id="saveState" class="status-chip">Loading</span>
+                <button id="runButton" class="primary editor-run-button" type="button">Run Python</button>
+              </div>
             </div>
             <textarea id="editor" spellcheck="false"></textarea>
           </section>
@@ -71,7 +73,7 @@
           <section class="right-rail">
             <div class="panel">
               <div class="panel-header">
-                <h2>Question Status</h2>
+                <h2>Question Map</h2>
               </div>
               <div id="questionStatusList" class="question-status-list">
                 <p class="muted">Question status will appear here.</p>
@@ -87,11 +89,24 @@
 
             <div class="panel">
               <div class="panel-header">
-                <h2>Console</h2>
+                <h2>Output</h2>
               </div>
-              <pre id="consoleOutput" class="console">Ready.</pre>
+              <pre id="consoleOutput" class="console">No output yet.</pre>
+            </div>
+
+            <div id="previewPanel" class="panel hidden">
+              <div class="panel-header">
+                <h2>Browser Preview</h2>
+              </div>
+              <iframe id="htmlPreview" class="html-preview" title="HTML solution preview" sandbox="allow-scripts"></iframe>
             </div>
           </section>
+        </section>
+
+        <section id="textAnswerPanel" class="panel text-answer-panel hidden">
+          <div class="panel-header"><div><h2 id="answerPanelTitle">Your Answer</h2><p id="answerPanelHint" class="muted">Enter your response below.</p></div><span id="textAnswerCount" class="status-chip">0 words</span></div>
+          <div id="multipleChoiceOptions" class="multiple-choice-options hidden"></div>
+          <textarea id="textAnswerEditor" class="text-answer-editor" spellcheck="true" placeholder="Type your answer here..."></textarea>
         </section>
       </main>
     </div>

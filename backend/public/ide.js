@@ -13,7 +13,10 @@
     saveTimer: null,
     exam: null,
     currentQuestionIndex: -1,
-    questionStates: []
+    questionStates: [],
+    questionDirty: false,
+    answerText: "",
+    selectedOption: ""
   };
 
   const editor = document.getElementById("editor");
@@ -26,6 +29,7 @@
   const examLabel = document.getElementById("examLabel");
   const ideTitle = document.getElementById("ideTitle");
   const activeFileName = document.getElementById("activeFileName");
+  const workspacePurpose = document.getElementById("workspacePurpose");
   const questionList = document.getElementById("questionList");
   const questionStageLabel = document.getElementById("questionStageLabel");
   const questionProgressLabel = document.getElementById("questionProgressLabel");
@@ -42,6 +46,16 @@
   const runButton = document.getElementById("runButton");
   const addFileButton = document.getElementById("addFileButton");
   const renameFileButton = document.getElementById("renameFileButton");
+  const filesPanel = document.getElementById("filesPanel");
+  const codingWorkspace = document.getElementById("codingWorkspace");
+  const textAnswerPanel = document.getElementById("textAnswerPanel");
+  const textAnswerEditor = document.getElementById("textAnswerEditor");
+  const multipleChoiceOptions = document.getElementById("multipleChoiceOptions");
+  const answerPanelTitle = document.getElementById("answerPanelTitle");
+  const answerPanelHint = document.getElementById("answerPanelHint");
+  const textAnswerCount = document.getElementById("textAnswerCount");
+  const previewPanel = document.getElementById("previewPanel");
+  const htmlPreview = document.getElementById("htmlPreview");
   const urlParams = new URLSearchParams(window.location.search);
   const requestedLanguageFromUrl = urlParams.get("language") || "";
   let remainingSeconds = null;
@@ -66,6 +80,9 @@
     if (value.includes("rust") || value.includes("rush") || value === "rs") {
       return "Rust";
     }
+    if (value.includes("html") || value.includes("frontend") || value === "web") {
+      return "HTML";
+    }
     return "Python";
   }
 
@@ -84,6 +101,10 @@
       }
     }
 
+    if (normalizeLanguage(language) === "HTML" && names.includes("index.html")) {
+      return "index.html";
+    }
+
     if (names.includes("main.py")) {
       return "main.py";
     }
@@ -94,7 +115,8 @@
   function setRuntimeLanguage(language) {
     state.runtimeLanguage = normalizeLanguage(language);
     ideTitle.textContent = `${state.runtimeLanguage} IDE`;
-    runButton.textContent = state.runtimeLanguage === "Rust" ? "Compile and Run Rust" : "Run Python";
+    runButton.textContent = state.runtimeLanguage === "HTML" ? "Refresh Preview" : `Run ${state.runtimeLanguage}`;
+    previewPanel.classList.toggle("hidden", state.runtimeLanguage !== "HTML");
   }
 
   function isInvalidFilename(filename) {
@@ -112,18 +134,25 @@
     if (state.runtimeLanguage === "Rust") {
       return lower.endsWith(".rs");
     }
+    if (state.runtimeLanguage === "HTML") {
+      return /\.(html|css|js)$/.test(lower);
+    }
     return lower.endsWith(".py");
   }
 
   function languageMainFile() {
-    return state.runtimeLanguage === "Rust" ? "src/main.rs" : "main.py";
+    if (state.runtimeLanguage === "Rust") return "src/main.rs";
+    if (state.runtimeLanguage === "HTML") return "index.html";
+    return "main.py";
   }
 
   function defaultMainContent() {
-    if (state.runtimeLanguage === "Rust") {
-      return "fn main() {\n    // TODO\n}\n";
-    }
-    return "def main():\n    pass\n\n\nif __name__ == \"__main__\":\n    main()\n";
+    return "";
+  }
+
+  function outputText(result) {
+    const stdout = String(result?.stdout || "").trimEnd();
+    return stdout || "No output.";
   }
 
   function sanitizeFilesForLanguage(files = {}) {
@@ -137,6 +166,27 @@
     return sanitized;
   }
 
+  function buildHtmlPreview(files = {}) {
+    let documentHtml = files["index.html"] || defaultMainContent();
+    Object.entries(files).forEach(([filename, content]) => {
+      if (filename.toLowerCase().endsWith(".css")) {
+        const escapedName = filename.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const linkPattern = new RegExp(`<link[^>]+href=["']${escapedName}["'][^>]*>`, "gi");
+        documentHtml = linkPattern.test(documentHtml)
+          ? documentHtml.replace(linkPattern, `<style data-file="${filename}">${content}</style>`)
+          : documentHtml.replace("</head>", `<style data-file="${filename}">${content}</style></head>`);
+      }
+      if (filename.toLowerCase().endsWith(".js")) {
+        const escapedName = filename.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const scriptPattern = new RegExp(`<script[^>]+src=["']${escapedName}["'][^>]*>\\s*</script>`, "gi");
+        documentHtml = scriptPattern.test(documentHtml)
+          ? documentHtml.replace(scriptPattern, `<script data-file="${filename}">${content}<\/script>`)
+          : documentHtml.replace("</body>", `<script data-file="${filename}">${content}<\/script></body>`);
+      }
+    });
+    return documentHtml;
+  }
+
   function starterForFilename(filename) {
     const lower = filename.toLowerCase();
     if (lower.endsWith(".py")) {
@@ -145,6 +195,9 @@
     if (lower.endsWith(".rs")) {
       return "pub fn helper() {\n    // TODO\n}\n";
     }
+    if (lower.endsWith(".html")) return "<section>\n  <!-- TODO -->\n</section>\n";
+    if (lower.endsWith(".css")) return ":root {\n  color-scheme: light;\n}\n";
+    if (lower.endsWith(".js")) return "// Add your browser logic here.\n";
     if (lower.endsWith(".md")) {
       return "# Notes\n";
     }
@@ -190,30 +243,147 @@
     return state.questionStates[state.currentQuestionIndex] || null;
   }
 
+  function currentQuestion() {
+    return state.currentQuestionIndex >= 0 ? state.exam?.questions?.[state.currentQuestionIndex] || null : null;
+  }
+
+  function currentQuestionId() {
+    return currentQuestion()?.id || "";
+  }
+
+  function syncCurrentAnsweredState() {
+    const status = currentQuestionState();
+    if (!status) return;
+    if (isCodingQuestion()) {
+      persistActiveFile();
+      status.answered = Object.values(state.files || {}).some((content) => String(content).trim());
+    } else {
+      status.answered = Boolean(String(state.answerText || "").trim() || String(state.selectedOption || "") !== "");
+    }
+    renderQuestionStatusList();
+  }
+
+  function isCodingQuestion(question = currentQuestion()) {
+    const format = String(question?.format || "Coding").toLowerCase();
+    return format.includes("coding") || format.includes("debug") || format.includes("frontend");
+  }
+
+  function isMultipleChoiceQuestion(question = currentQuestion()) {
+    return String(question?.format || "").toLowerCase().includes("multiple");
+  }
+
+  function renderAnswerMode(question, answer) {
+    const coding = isCodingQuestion(question);
+    filesPanel.classList.remove("hidden");
+    codingWorkspace.classList.remove("hidden");
+    textAnswerPanel.classList.toggle("hidden", coding);
+    runButton.classList.remove("hidden");
+    addFileButton.classList.remove("hidden");
+    renameFileButton.classList.remove("hidden");
+    workspacePurpose.textContent = coding ? "Official coding answer" : "Practice IDE - not part of your written answer";
+    codingWorkspace.classList.toggle("scratch-workspace", !coding);
+    if (coding) return;
+
+    state.answerText = answer?.answerText || "";
+    state.selectedOption = answer?.selectedOption || "";
+    const multipleChoice = isMultipleChoiceQuestion(question);
+    multipleChoiceOptions.classList.toggle("hidden", !multipleChoice);
+    textAnswerEditor.classList.toggle("hidden", multipleChoice);
+    answerPanelTitle.textContent = multipleChoice ? "Choose One Answer" : question.format || "Written Answer";
+    answerPanelHint.textContent = multipleChoice
+      ? "Select the best answer here. The practice IDE below is separate."
+      : "Enter your official written answer here. Code in the practice IDE below is not submitted as this answer.";
+    textAnswerEditor.value = state.answerText;
+    textAnswerEditor.rows = String(question?.format || "").toLowerCase().includes("long") ? 16 : 6;
+    multipleChoiceOptions.innerHTML = multipleChoice ? (question.options || []).map((option, index) => `<label class="choice-option"><input type="radio" name="questionChoice" value="${index}" ${state.selectedOption === String(index) ? "checked" : ""}><span><strong>${String.fromCharCode(65 + index)}</strong>${option}</span></label>`).join("") : "";
+    textAnswerCount.textContent = multipleChoice ? (state.selectedOption ? "Selected" : "Not selected") : `${state.answerText.trim() ? state.answerText.trim().split(/\s+/).length : 0} words`;
+  }
+
+  function renderInstructionsMode() {
+    filesPanel.classList.add("hidden");
+    codingWorkspace.classList.add("hidden");
+    textAnswerPanel.classList.add("hidden");
+    runButton.classList.add("hidden");
+    addFileButton.classList.add("hidden");
+    renameFileButton.classList.add("hidden");
+  }
+
+  function starterFilesForQuestion(question) {
+    const mainFile = languageMainFile();
+    const starter = String(question?.starter || "").trim();
+    if (starter) {
+      return { [mainFile]: `${starter}\n` };
+    }
+    return { [mainFile]: defaultMainContent() };
+  }
+
+  async function openQuestion(index) {
+    if (!state.exam?.questions?.[index]) return;
+    if (state.currentQuestionIndex >= 0 && state.questionDirty) {
+      await saveWorkspace("AUTOSAVE");
+    }
+
+    state.currentQuestionIndex = index;
+    const question = currentQuestion();
+    const query = new URLSearchParams({
+      ...authPayload(),
+      language: state.runtimeLanguage,
+      questionId: question.id
+    }).toString();
+    const workspace = await api(`/api/exam/workspace?${query}`);
+    state.files = isCodingQuestion(question)
+      ? workspace.questionAnswer?.files || starterFilesForQuestion(question)
+      : workspace.questionAnswer?.scratchFiles || workspace.files || starterFilesForQuestion(question);
+    const questionState = currentQuestionState();
+    if (workspace.questionAnswer && questionState) {
+      questionState.answered = isCodingQuestion(question)
+        ? Object.values(workspace.questionAnswer.files || {}).some((content) => String(content).trim())
+        : Boolean(String(workspace.questionAnswer.answerText || "").trim() || String(workspace.questionAnswer.selectedOption || "") !== "");
+    }
+    state.files = sanitizeFilesForLanguage(state.files);
+    state.activeFile = chooseActiveFile(state.files, state.runtimeLanguage);
+    editor.value = state.files[state.activeFile];
+    stdinEditor.value = isCodingQuestion(question) ? workspace.questionAnswer?.stdinText || "" : workspace.questionAnswer?.scratchStdinText || "";
+    renderAnswerMode(question, workspace.questionAnswer);
+    activeFileName.textContent = state.activeFile;
+    const latestResult = isCodingQuestion(question) ? workspace.questionAnswer?.result : workspace.questionAnswer?.scratchResult;
+    consoleOutput.textContent = latestResult ? outputText(latestResult) : "No output yet.";
+    state.questionDirty = false;
+    renderFiles();
+    renderQuestions(state.exam);
+  }
+
   function renderQuestionStatusList() {
     if (!state.exam?.questions?.length) {
       questionStatusList.innerHTML = `<p class="muted">No question status available.</p>`;
       return;
     }
 
-    questionStatusList.innerHTML = state.exam.questions
+    const total = state.exam.questions.length;
+    const answered = state.questionStates.filter((status) => status?.answered).length;
+    const flagged = state.questionStates.filter((status) => status?.flagged).length;
+    const progress = total ? Math.round(answered / total * 100) : 0;
+    const tiles = state.exam.questions
       .map((question, index) => {
         const status = state.questionStates[index] || {};
-        const chips = [
-          status.answered ? "Answered" : "Unanswered",
-          status.flagged ? "Flagged" : "",
-          status.visited ? "Visited" : "Not opened"
-        ].filter(Boolean).join(" | ");
+        const stateClass = status.flagged ? "flagged" : status.answered ? "answered" : status.visited ? "visited" : "unanswered";
+        const stateLabel = status.flagged ? "Flagged" : status.answered ? "Answered" : status.visited ? "Visited, unanswered" : "Not opened";
 
         return `
-          <button class="question-status-item ${index === state.currentQuestionIndex ? "active" : ""}" data-jump-question="${index}" type="button">
-            <strong>Q${index + 1}</strong>
-            <span>${question.title}</span>
-            <small>${chips}</small>
+          <button class="question-map-tile ${stateClass} ${index === state.currentQuestionIndex ? "active" : ""}" data-jump-question="${index}" type="button" title="Question ${index + 1}: ${stateLabel}" aria-label="Open Question ${index + 1}, ${stateLabel}">
+            <strong>${index + 1}</strong>${status.flagged ? '<span aria-hidden="true">!</span>' : status.answered ? '<span aria-hidden="true">✓</span>' : ""}
           </button>
         `;
       })
       .join("");
+    questionStatusList.innerHTML = `
+      <div class="question-map-summary">
+        <div class="progress-ring" style="--progress:${progress * 3.6}deg"><strong>${answered}/${total}</strong><span>answered</span></div>
+        <div class="map-counts"><span><b>${total - answered}</b> left</span><span><b>${flagged}</b> flagged</span></div>
+      </div>
+      <div class="question-map-grid">${tiles}</div>
+      <div class="question-map-legend"><span class="answered">Answered</span><span class="flagged">Flagged</span><span class="current">Current</span></div>
+    `;
   }
 
   function renderSubmissionReview() {
@@ -235,12 +405,8 @@
         flagged.push(index + 1);
       }
 
-      return `
-        <article class="review-item">
-          <strong>Question ${index + 1}: ${question.title}</strong>
-          <div class="muted">${status.answered ? "Answered" : "Not answered yet"} | ${status.flagged ? "Flagged for review" : "Not flagged"}</div>
-        </article>
-      `;
+      const stateClass = status.flagged ? "flagged" : status.answered ? "answered" : "unanswered";
+      return `<button class="review-question-tile ${stateClass}" data-review-question="${index}" type="button"><strong>Q${index + 1}</strong><span>${status.flagged ? "Flagged" : status.answered ? "Answered" : "Unanswered"}</span></button>`;
     }).join("");
 
     submissionReviewSummary.innerHTML = `
@@ -249,7 +415,7 @@
         <div><strong>${unanswered.length}</strong><span>Unanswered</span></div>
         <div><strong>${flagged.length}</strong><span>Flagged</span></div>
       </div>
-      <p class="muted">${unanswered.length ? `Unanswered: Q${unanswered.join(", Q")}.` : "All questions are marked answered."} ${flagged.length ? `Flagged: Q${flagged.join(", Q")}.` : "No questions are currently flagged."}</p>
+      <p class="muted">Select a question tile below to review it before submitting.</p>
     `;
     submissionReviewList.innerHTML = items;
   }
@@ -292,6 +458,7 @@
     }
 
     if (state.currentQuestionIndex === -1) {
+      renderInstructionsMode();
       questionStageLabel.textContent = "Instructions";
       questionProgressLabel.textContent = `${questions.length} questions total`;
       flagQuestionButton.disabled = true;
@@ -356,28 +523,41 @@
     renderQuestionStatusList();
   }
 
-  function goToPreviousQuestion() {
+  async function goToPreviousQuestion() {
     if (!state.exam?.questions?.length) {
       return;
     }
 
-    state.currentQuestionIndex = Math.max(-1, state.currentQuestionIndex - 1);
-    renderQuestions(state.exam);
+    if (state.currentQuestionIndex <= 0) {
+      if (state.questionDirty) await saveWorkspace("AUTOSAVE");
+      state.currentQuestionIndex = -1;
+      renderQuestions(state.exam);
+      return;
+    }
+    await openQuestion(state.currentQuestionIndex - 1);
   }
 
-  function goToNextQuestion() {
+  async function goToNextQuestion() {
     if (!state.exam?.questions?.length) {
       return;
     }
 
     if (state.currentQuestionIndex >= state.exam.questions.length - 1) {
+      const status = currentQuestionState();
+      if (status) status.answered = true;
+      state.questionDirty = true;
+      if (state.questionDirty) await saveWorkspace("AUTOSAVE");
       renderSubmissionReview();
       submissionReviewModal.classList.remove("hidden");
       return;
     }
 
-    state.currentQuestionIndex += 1;
-    renderQuestions(state.exam);
+    if (state.currentQuestionIndex >= 0) {
+      const status = currentQuestionState();
+      if (status) status.answered = true;
+      state.questionDirty = true;
+    }
+    await openQuestion(state.currentQuestionIndex + 1);
   }
 
   function toggleFlag() {
@@ -395,6 +575,7 @@
       return;
     }
     status.answered = !status.answered;
+    state.questionDirty = true;
     renderQuestions(state.exam);
   }
 
@@ -410,7 +591,7 @@
     }
 
     try {
-      await saveWorkspace();
+      await saveWorkspace("TIMER_SUBMIT");
       await api("/api/exam/submit", {
         method: "POST",
         body: JSON.stringify({
@@ -507,24 +688,33 @@
       });
   }
 
-  async function saveWorkspace() {
+  async function saveWorkspace(recordType = "AUTOSAVE") {
     persistActiveFile();
     state.files = sanitizeFilesForLanguage(state.files);
     setSaveState("Saving");
-    await api("/api/exam/workspace", {
+    const workspace = await api("/api/exam/workspace", {
       method: "POST",
       body: JSON.stringify({
         ...authPayload(),
         language: state.runtimeLanguage,
-        files: state.files
+        files: state.files,
+        activeFile: state.activeFile,
+        questionId: currentQuestionId(),
+        stdin: stdinEditor.value,
+        answerText: state.answerText,
+        selectedOption: state.selectedOption,
+        answerMode: isCodingQuestion() ? "coding" : "text",
+        recordType
       })
     });
-    setSaveState("Saved");
+    const version = workspace.recording?.versionNumber;
+    setSaveState(version ? `Synced v${version}` : "Synced");
+    state.questionDirty = false;
   }
 
   async function runCode() {
-    await saveWorkspace();
-    consoleOutput.textContent = state.runtimeLanguage === "Rust" ? "Compiling and running Rust..." : "Running Python...";
+    await saveWorkspace("BEFORE_RUN");
+    consoleOutput.textContent = "Running...";
 
     const result = await api("/api/exam/run", {
       method: "POST",
@@ -532,19 +722,24 @@
         ...authPayload(),
         language: state.runtimeLanguage,
         files: state.files,
-        stdin: stdinEditor.value
+        activeFile: state.activeFile,
+        questionId: currentQuestionId(),
+        stdin: stdinEditor.value,
+        answerText: state.answerText,
+        selectedOption: state.selectedOption,
+        answerMode: isCodingQuestion() ? "coding" : "text"
       })
     });
 
-    consoleOutput.textContent = [
-      result.command ? `$ ${result.command}` : "",
-      result.stdout || "",
-      result.stderr || ""
-    ].filter(Boolean).join("\n");
+    consoleOutput.textContent = outputText(result);
+
+    if (state.runtimeLanguage === "HTML") {
+      htmlPreview.srcdoc = buildHtmlPreview(state.files);
+    }
   }
 
   async function submitExam() {
-    await saveWorkspace();
+    await saveWorkspace("BEFORE_SUBMIT");
     await api("/api/exam/submit", {
       method: "POST",
       body: JSON.stringify({
@@ -558,7 +753,7 @@
   }
 
   async function exitExam() {
-    await saveWorkspace();
+    await saveWorkspace("EXIT_SAVE");
     await window.secureClient?.exitExam({ reason: "ide-exit" });
   }
 
@@ -577,12 +772,20 @@
     activeFileName.textContent = state.activeFile;
     renderQuestions(workspace.exam);
     renderFiles();
-    await saveWorkspace();
+    if (state.runtimeLanguage === "HTML") {
+      htmlPreview.srcdoc = buildHtmlPreview(state.files);
+    }
+    await saveWorkspace("AUTOSAVE");
     setSaveState("Ready");
   }
 
   async function addFile() {
-    const suggestion = state.runtimeLanguage === "Rust" ? "src/utils.rs" : "utils.py";
+    const suggestion =
+      state.runtimeLanguage === "Rust"
+        ? "src/utils.rs"
+        : state.runtimeLanguage === "HTML"
+          ? "styles.css"
+          : "utils.py";
     const filename = window.prompt("New file name (you can include folders):", suggestion);
     if (filename == null) {
       return;
@@ -590,20 +793,23 @@
 
     const trimmed = String(filename).trim();
     if (isInvalidFilename(trimmed)) {
-      consoleOutput.textContent = "Invalid file name. Use a relative path like utils.py or src/utils.rs.";
+      setSaveState("Invalid file name");
       return;
     }
 
     if (!isAllowedLanguageFile(trimmed)) {
-      consoleOutput.textContent =
+      setSaveState(
         state.runtimeLanguage === "Rust"
           ? "Rust exam mode only allows .rs files."
-          : "Python exam mode only allows .py files.";
+          : state.runtimeLanguage === "HTML"
+            ? "HTML exam mode allows .html, .css, and .js files."
+            : "Python exam mode only allows .py files."
+      );
       return;
     }
 
     if (state.files[trimmed] != null) {
-      consoleOutput.textContent = `File already exists: ${trimmed}`;
+      setSaveState("File already exists");
       return;
     }
 
@@ -613,12 +819,12 @@
     activeFileName.textContent = trimmed;
     editor.value = state.files[trimmed];
     renderFiles();
-    await saveWorkspace();
+    await saveWorkspace("FILE_ADDED");
   }
 
   async function renameActiveFile() {
     if (!state.activeFile || !Object.prototype.hasOwnProperty.call(state.files, state.activeFile)) {
-      consoleOutput.textContent = "Select a file first.";
+      setSaveState("Select a file first");
       return;
     }
 
@@ -633,26 +839,29 @@
     }
 
     if (isInvalidFilename(nextName)) {
-      consoleOutput.textContent = "Invalid file name. Use a relative path like utils.py or src/utils.rs.";
+      setSaveState("Invalid file name");
       return;
     }
 
     if (!isAllowedLanguageFile(nextName)) {
-      consoleOutput.textContent =
+      setSaveState(
         state.runtimeLanguage === "Rust"
           ? "Rust exam mode only allows .rs files."
-          : "Python exam mode only allows .py files.";
+          : state.runtimeLanguage === "HTML"
+            ? "HTML exam mode allows .html, .css, and .js files."
+            : "Python exam mode only allows .py files."
+      );
       return;
     }
 
     if (state.files[nextName] != null) {
-      consoleOutput.textContent = `File already exists: ${nextName}`;
+      setSaveState("File already exists");
       return;
     }
 
     const mainFile = languageMainFile();
     if (state.activeFile === mainFile) {
-      consoleOutput.textContent = `Main file must stay as ${mainFile}. Add extra module files instead.`;
+      setSaveState(`Keep main file as ${mainFile}`);
       return;
     }
 
@@ -663,42 +872,63 @@
     activeFileName.textContent = nextName;
     editor.value = state.files[nextName];
     renderFiles();
-    await saveWorkspace();
+    await saveWorkspace("FILE_RENAMED");
   }
 
   editor.addEventListener("input", () => {
     persistActiveFile();
+    syncCurrentAnsweredState();
+    state.questionDirty = true;
     setSaveState("Unsaved");
     clearTimeout(state.saveTimer);
     state.saveTimer = setTimeout(() => {
-      saveWorkspace().catch(() => setSaveState("Save failed"));
+      saveWorkspace("AUTOSAVE").catch(() => setSaveState("Sync failed"));
     }, 900);
   });
 
   stdinEditor.addEventListener("input", () => {
     persistActiveFile();
+    state.questionDirty = true;
+  });
+
+  textAnswerEditor.addEventListener("input", () => {
+    state.answerText = textAnswerEditor.value;
+    state.questionDirty = true;
+    textAnswerCount.textContent = `${state.answerText.trim() ? state.answerText.trim().split(/\s+/).length : 0} words`;
+    syncCurrentAnsweredState();
+    clearTimeout(state.saveTimer);
+    state.saveTimer = setTimeout(() => saveWorkspace("AUTOSAVE").catch(() => setSaveState("Sync failed")), 900);
+  });
+
+  multipleChoiceOptions.addEventListener("change", (event) => {
+    if (event.target.name !== "questionChoice") return;
+    state.selectedOption = event.target.value;
+    state.questionDirty = true;
+    textAnswerCount.textContent = "Selected";
+    syncCurrentAnsweredState();
+    saveWorkspace("AUTOSAVE").catch(() => setSaveState("Sync failed"));
   });
 
   document.getElementById("runButton").addEventListener("click", () => {
-    runCode().catch((error) => {
-      consoleOutput.textContent = error.message;
+    runCode().catch(() => {
+      consoleOutput.textContent = "No output.";
     });
   });
 
   addFileButton.addEventListener("click", () => {
-    addFile().catch((error) => {
-      consoleOutput.textContent = error.message;
+    addFile().catch(() => {
+      setSaveState("Unable to add file");
     });
   });
 
   renameFileButton.addEventListener("click", () => {
-    renameActiveFile().catch((error) => {
-      consoleOutput.textContent = error.message;
+    renameActiveFile().catch(() => {
+      setSaveState("Unable to rename file");
     });
   });
 
   document.getElementById("saveButton").addEventListener("click", () => {
-    saveWorkspace().catch(() => setSaveState("Save failed"));
+    saveWorkspace("MANUAL_SAVE").catch(() => setSaveState("Sync failed"));
   });
 
   document.getElementById("submitButton").addEventListener("click", () => {
@@ -707,21 +937,21 @@
   });
 
   confirmFinalSubmitButton.addEventListener("click", () => {
-    submitExam().catch((error) => {
-      consoleOutput.textContent = error.message;
+    submitExam().catch(() => {
+      consoleOutput.textContent = "No output.";
     });
   });
 
   document.getElementById("exitButton").addEventListener("click", () => {
-    exitExam().catch((error) => {
-      consoleOutput.textContent = error.message;
+    exitExam().catch(() => {
+      consoleOutput.textContent = "No output.";
     });
   });
 
   flagQuestionButton.addEventListener("click", toggleFlag);
   markAnsweredButton.addEventListener("click", toggleAnswered);
-  prevQuestionButton.addEventListener("click", goToPreviousQuestion);
-  nextQuestionButton.addEventListener("click", goToNextQuestion);
+  prevQuestionButton.addEventListener("click", () => goToPreviousQuestion().catch(() => { consoleOutput.textContent = "No output."; }));
+  nextQuestionButton.addEventListener("click", () => goToNextQuestion().catch(() => { consoleOutput.textContent = "No output."; }));
   closeReviewModal.addEventListener("click", () => submissionReviewModal.classList.add("hidden"));
   submissionReviewModal.addEventListener("click", (event) => {
     if (event.target === submissionReviewModal) {
@@ -733,8 +963,17 @@
     if (!button) {
       return;
     }
-    state.currentQuestionIndex = Number(button.getAttribute("data-jump-question"));
-    renderQuestions(state.exam);
+    openQuestion(Number(button.getAttribute("data-jump-question"))).catch(() => {
+      consoleOutput.textContent = "No output.";
+    });
+  });
+  submissionReviewList.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-review-question]");
+    if (!button) return;
+    submissionReviewModal.classList.add("hidden");
+    openQuestion(Number(button.getAttribute("data-review-question"))).catch(() => {
+      consoleOutput.textContent = "No output.";
+    });
   });
 
   setRuntimeLanguage(requestedLanguageFromUrl || state.runtimeLanguage);

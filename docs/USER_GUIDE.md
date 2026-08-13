@@ -1,4 +1,4 @@
-# CloudIDE Secure Pro User Guide
+# EzProctor Exam User Guide
 
 This guide is organized by role:
 - Admin (system owner / IT operator)
@@ -69,7 +69,7 @@ Admin is responsible for deploying the platform, keeping services online, and ha
 - URL: `http://127.0.0.1:8787/admin`
 
 ### 2.3 Create Exam
-1. In **Step 1 â€“ Build The Exam**, fill:
+1. In **Step 1 â€?Build The Exam**, fill:
    - Exam title (required)
    - Timer (default 90 min)
    - Optional advanced settings:
@@ -84,7 +84,7 @@ Admin is responsible for deploying the platform, keeping services online, and ha
 4. Confirm exam appears under **Saved Exams**.
 
 ### 2.4 Create Session
-1. Go to **Step 2A â€“ Open A Session**.
+1. Go to **Step 2A â€?Open A Session**.
 2. Select exam template.
 3. Optional:
    - Session name
@@ -95,7 +95,7 @@ Admin is responsible for deploying the platform, keeping services online, and ha
 
 ### 2.5 Add Students
 Option A: Import CSV (recommended)
-1. Go to **Step 2B â€“ Add Students**.
+1. Go to **Step 2B â€?Add Students**.
 2. Upload CSV with columns:
    - `studentNumber,fullName,email`
 3. Click **Import Student List**.
@@ -105,7 +105,7 @@ Option B: Manual
 2. Click **Create Student**.
 
 ### 2.6 Assign Students To Session
-1. Go to **Step 2C â€“ Assign Students To A Session**.
+1. Go to **Step 2C â€?Assign Students To A Session**.
 2. Choose session and student.
 3. Optional seat label.
 4. Click **Assign Student**.

@@ -1,22 +1,12 @@
 const languageTemplates = {
   Python: {
-    "main.py": `def solve(name: str) -> str:
-    return f"Hello, {name}! Welcome to CloudIDE Secure Pro."
-
-
-if __name__ == "__main__":
-    print(solve("candidate"))
-`
+    "main.py": ""
   },
   Rust: {
-    "src/main.rs": `fn solve(name: &str) -> String {
-    format!("Hello, {}! Welcome to CloudIDE Secure Pro.", name)
-}
-
-fn main() {
-    println!("{}", solve("candidate"));
-}
-`
+    "src/main.rs": ""
+  },
+  HTML: {
+    "index.html": ""
   }
 };
 
@@ -24,6 +14,9 @@ function normalizeLanguage(language = "") {
   const normalized = String(language).trim().toLowerCase();
   if (normalized.includes("rust") || normalized.includes("rush") || normalized === "rs") {
     return "Rust";
+  }
+  if (normalized.includes("html") || normalized.includes("frontend") || normalized === "web") {
+    return "HTML";
   }
   return "Python";
 }
@@ -58,9 +51,24 @@ function cleanupRustFiles(files = {}) {
   return Object.fromEntries(Object.entries(source).filter(([name]) => name.endsWith(".rs")));
 }
 
+function cleanupHtmlFiles(files = {}) {
+  const source = { ...(files || {}) };
+  return Object.fromEntries(
+    Object.entries(source).filter(([name]) => /\.(html|css|js)$/i.test(name))
+  );
+}
+
 function mapFilesForLanguage(language = "Python", files = {}) {
   const resolved = normalizeLanguage(language);
   const source = dropLegacyNoise(files || {});
+
+  if (resolved === "HTML") {
+    const htmlCleaned = cleanupHtmlFiles(source);
+    if (!htmlCleaned["index.html"]) {
+      htmlCleaned["index.html"] = getDefaultFilesForLanguage("HTML")["index.html"];
+    }
+    return htmlCleaned;
+  }
 
   if (resolved !== "Rust") {
     const pythonCleaned = cleanupPythonFiles(source);

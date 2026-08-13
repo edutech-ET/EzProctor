@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const { DatabaseSync } = require("node:sqlite");
 
 const dataDir = process.env.CLOUDIDE_SECURE_DATA_DIR
@@ -70,6 +71,53 @@ db.exec(`
     PRIMARY KEY(session_id, student_id)
   );
 
+  CREATE TABLE IF NOT EXISTS workspace_recordings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL,
+    student_id TEXT NOT NULL,
+    exam_id TEXT NOT NULL,
+    version_number INTEGER NOT NULL,
+    record_type TEXT NOT NULL,
+    language TEXT,
+    files_json TEXT NOT NULL,
+    stdin_text TEXT,
+    result_json TEXT,
+    metadata_json TEXT NOT NULL DEFAULT '{}',
+    content_hash TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    UNIQUE(session_id, student_id, version_number)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_workspace_recordings_student
+  ON workspace_recordings(session_id, student_id, created_at);
+
+  CREATE INDEX IF NOT EXISTS idx_workspace_recordings_exam
+  ON workspace_recordings(exam_id, created_at);
+
+  CREATE TABLE IF NOT EXISTS question_answers (
+    session_id TEXT NOT NULL,
+    student_id TEXT NOT NULL,
+    exam_id TEXT NOT NULL,
+    question_id TEXT NOT NULL,
+    files_json TEXT NOT NULL,
+    stdin_text TEXT NOT NULL DEFAULT '',
+    result_json TEXT,
+    answer_text TEXT NOT NULL DEFAULT '',
+    selected_option TEXT NOT NULL DEFAULT '',
+    scratch_files_json TEXT NOT NULL DEFAULT '{}',
+    scratch_stdin_text TEXT NOT NULL DEFAULT '',
+    scratch_result_json TEXT,
+    score REAL,
+    feedback TEXT NOT NULL DEFAULT '',
+    grading_status TEXT NOT NULL DEFAULT 'Pending',
+    updated_at TEXT NOT NULL,
+    graded_at TEXT,
+    PRIMARY KEY(session_id, student_id, question_id)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_question_answers_exam
+  ON question_answers(exam_id, session_id, student_id);
+
   CREATE TABLE IF NOT EXISTS activity_events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     session_id TEXT,
@@ -94,6 +142,23 @@ db.exec(`
     reviewed_at TEXT
   );
 `);
+
+const questionAnswerColumns = db.prepare(`PRAGMA table_info(question_answers)`).all();
+if (!questionAnswerColumns.some((column) => column.name === "answer_text")) {
+  db.exec(`ALTER TABLE question_answers ADD COLUMN answer_text TEXT NOT NULL DEFAULT '';`);
+}
+if (!questionAnswerColumns.some((column) => column.name === "selected_option")) {
+  db.exec(`ALTER TABLE question_answers ADD COLUMN selected_option TEXT NOT NULL DEFAULT '';`);
+}
+if (!questionAnswerColumns.some((column) => column.name === "scratch_files_json")) {
+  db.exec(`ALTER TABLE question_answers ADD COLUMN scratch_files_json TEXT NOT NULL DEFAULT '{}';`);
+}
+if (!questionAnswerColumns.some((column) => column.name === "scratch_stdin_text")) {
+  db.exec(`ALTER TABLE question_answers ADD COLUMN scratch_stdin_text TEXT NOT NULL DEFAULT '';`);
+}
+if (!questionAnswerColumns.some((column) => column.name === "scratch_result_json")) {
+  db.exec(`ALTER TABLE question_answers ADD COLUMN scratch_result_json TEXT;`);
+}
 
 const examColumns = db.prepare(`PRAGMA table_info(exams)`).all();
 if (!examColumns.some((column) => column.name === "test_type")) {
@@ -150,6 +215,7 @@ function normalizeQuestions(questions = []) {
 
         return {
           id: String(question?.id || `question-${index + 1}`),
+          number: index + 1,
           format,
           title,
           section: String(question?.section || "").trim(),
@@ -230,6 +296,17 @@ function createExam({
   };
 }
 
+function updateExam(id, payload = {}) {
+  const current = getExamById(id);
+  if (!current) return null;
+  const questions = payload.questions === undefined ? current.questions : normalizeQuestions(payload.questions);
+  db.prepare(`UPDATE exams SET title = ?, test_type = ?, language = ?, duration_minutes = ?, questions_json = ?, status = ? WHERE id = ?`).run(
+    payload.title ?? current.title, payload.testType ?? current.testType, payload.language ?? current.language,
+    Number(payload.durationMinutes ?? current.durationMinutes), JSON.stringify(questions), payload.status ?? current.status, id
+  );
+  return getExamById(id);
+}
+
 function sessionEndTime(startsAt, durationMinutes) {
   if (!startsAt) {
     return null;
@@ -306,6 +383,16 @@ function createSession({ id, examId, sessionName, accessCode, studentCount = 0, 
     JOIN exams e ON e.id = es.exam_id
     WHERE es.id = ?
   `).get(id);
+}
+
+function updateSession(id, payload = {}) {
+  const current = getSessionById(id);
+  if (!current) return null;
+  db.prepare(`UPDATE exam_sessions SET exam_id = ?, session_name = ?, access_code = ?, student_count = ? WHERE id = ?`).run(
+    payload.examId ?? current.examId, payload.sessionName ?? current.sessionName,
+    payload.accessCode ?? current.accessCode, Number(payload.studentCount ?? current.studentCount), id
+  );
+  return getSessionById(id);
 }
 
 function updateSessionStatus(id, status) {
@@ -420,6 +507,16 @@ function createStudent({ id, studentNumber, fullName, email = "", identityStatus
            created_at AS createdAt
     FROM students WHERE id = ?
   `).get(id);
+}
+
+function updateStudent(id, payload = {}) {
+  const current = listStudents().find((student) => student.id === id);
+  if (!current) return null;
+  db.prepare(`UPDATE students SET student_number = ?, full_name = ?, email = ?, identity_status = ? WHERE id = ?`).run(
+    payload.studentNumber ?? current.studentNumber, payload.fullName ?? current.fullName,
+    payload.email ?? current.email, payload.identityStatus ?? current.identityStatus, id
+  );
+  return listStudents().find((student) => student.id === id);
 }
 
 function importStudents(students = []) {
@@ -611,6 +708,7 @@ function rejectRegistration(registrationId) {
 
   db.prepare(`DELETE FROM registrations WHERE id = ?`).run(registrationId);
   db.prepare(`DELETE FROM workspaces WHERE session_id = ? AND student_id = ?`).run(registration.sessionId, registration.studentId);
+  db.prepare(`DELETE FROM question_answers WHERE session_id = ? AND student_id = ?`).run(registration.sessionId, registration.studentId);
   db.prepare(`DELETE FROM submissions WHERE session_id = ? AND student_id = ?`).run(registration.sessionId, registration.studentId);
   db.prepare(`DELETE FROM activity_events WHERE session_id = ? AND student_id = ?`).run(registration.sessionId, registration.studentId);
   return registration;
@@ -629,6 +727,7 @@ function deleteStudent(studentId) {
 
   db.prepare(`DELETE FROM registrations WHERE student_id = ?`).run(studentId);
   db.prepare(`DELETE FROM workspaces WHERE student_id = ?`).run(studentId);
+  db.prepare(`DELETE FROM question_answers WHERE student_id = ?`).run(studentId);
   db.prepare(`DELETE FROM submissions WHERE student_id = ?`).run(studentId);
   db.prepare(`DELETE FROM activity_events WHERE student_id = ?`).run(studentId);
   db.prepare(`DELETE FROM students WHERE id = ?`).run(studentId);
@@ -648,6 +747,7 @@ function deleteSession(sessionId) {
 
   db.prepare(`DELETE FROM registrations WHERE session_id = ?`).run(sessionId);
   db.prepare(`DELETE FROM workspaces WHERE session_id = ?`).run(sessionId);
+  db.prepare(`DELETE FROM question_answers WHERE session_id = ?`).run(sessionId);
   db.prepare(`DELETE FROM submissions WHERE session_id = ?`).run(sessionId);
   db.prepare(`DELETE FROM activity_events WHERE session_id = ?`).run(sessionId);
   db.prepare(`DELETE FROM exam_sessions WHERE id = ?`).run(sessionId);
@@ -672,6 +772,7 @@ function deleteExam(examId) {
 
   db.prepare(`DELETE FROM submissions WHERE exam_id = ?`).run(examId);
   db.prepare(`DELETE FROM workspaces WHERE exam_id = ?`).run(examId);
+  db.prepare(`DELETE FROM question_answers WHERE exam_id = ?`).run(examId);
   db.prepare(`DELETE FROM activity_events WHERE exam_id = ?`).run(examId);
   db.prepare(`DELETE FROM exams WHERE id = ?`).run(examId);
   return exam;
@@ -717,7 +818,248 @@ function authenticateStudent({ accessCode, studentNumber, verificationCode }) {
   return row;
 }
 
-function getWorkspace(sessionId, studentId, examId, defaultFiles) {
+function insertWorkspaceRecording({
+  sessionId,
+  studentId,
+  examId,
+  files,
+  recordType = "AUTOSAVE",
+  language = null,
+  stdin = "",
+  result = null,
+  metadata = {},
+  deduplicate = false
+}) {
+  const filesJson = JSON.stringify(files || {});
+  const contentHash = crypto.createHash("sha256").update(filesJson).digest("hex");
+
+  if (deduplicate) {
+    const latest = db.prepare(`
+      SELECT id, version_number AS versionNumber, content_hash AS contentHash,
+             record_type AS recordType, created_at AS createdAt
+      FROM workspace_recordings
+      WHERE session_id = ? AND student_id = ?
+      ORDER BY version_number DESC
+      LIMIT 1
+    `).get(sessionId, studentId);
+
+    if (latest?.contentHash === contentHash && latest?.recordType === recordType) {
+      return { ...latest, deduplicated: true };
+    }
+  }
+
+  const versionRow = db.prepare(`
+    SELECT COALESCE(MAX(version_number), 0) + 1 AS nextVersion
+    FROM workspace_recordings
+    WHERE session_id = ? AND student_id = ?
+  `).get(sessionId, studentId);
+  const versionNumber = Number(versionRow?.nextVersion || 1);
+  const createdAt = now();
+  const inserted = db.prepare(`
+    INSERT INTO workspace_recordings (
+      session_id, student_id, exam_id, version_number, record_type, language,
+      files_json, stdin_text, result_json, metadata_json, content_hash, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    sessionId,
+    studentId,
+    examId,
+    versionNumber,
+    recordType,
+    language,
+    filesJson,
+    String(stdin || ""),
+    result ? JSON.stringify(result) : null,
+    JSON.stringify(metadata || {}),
+    contentHash,
+    createdAt
+  );
+
+  return {
+    id: Number(inserted.lastInsertRowid),
+    versionNumber,
+    recordType,
+    contentHash,
+    createdAt,
+    deduplicated: false
+  };
+}
+
+function backfillWorkspaceRecordings() {
+  const existingWorkspaces = db.prepare(`
+    SELECT w.session_id AS sessionId, w.student_id AS studentId, w.exam_id AS examId,
+           w.files_json AS filesJson, w.updated_at AS updatedAt, e.language AS language
+    FROM workspaces w
+    LEFT JOIN exams e ON e.id = w.exam_id
+    WHERE NOT EXISTS (
+      SELECT 1 FROM workspace_recordings wr
+      WHERE wr.session_id = w.session_id AND wr.student_id = w.student_id
+    )
+  `).all();
+
+  const insert = db.prepare(`
+    INSERT INTO workspace_recordings (
+      session_id, student_id, exam_id, version_number, record_type, language,
+      files_json, stdin_text, result_json, metadata_json, content_hash, created_at
+    ) VALUES (?, ?, ?, 1, 'LEGACY_SNAPSHOT', ?, ?, '', NULL, '{}', ?, ?)
+  `);
+
+  existingWorkspaces.forEach((workspace) => {
+    const contentHash = crypto.createHash("sha256").update(workspace.filesJson).digest("hex");
+    insert.run(
+      workspace.sessionId,
+      workspace.studentId,
+      workspace.examId,
+      workspace.language || null,
+      workspace.filesJson,
+      contentHash,
+      workspace.updatedAt || now()
+    );
+  });
+}
+
+function recordWorkspaceVersion(payload) {
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    const recording = insertWorkspaceRecording(payload);
+    db.exec("COMMIT");
+    return recording;
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
+  }
+}
+
+function listWorkspaceRecordings(sessionId, studentId, { limit = 100, beforeVersion = null } = {}) {
+  const safeLimit = Math.max(1, Math.min(Number(limit) || 100, 250));
+  return db.prepare(`
+    SELECT id, session_id AS sessionId, student_id AS studentId, exam_id AS examId,
+           version_number AS versionNumber, record_type AS recordType, language,
+           files_json AS filesJson, stdin_text AS stdinText, result_json AS resultJson,
+           metadata_json AS metadataJson, content_hash AS contentHash, created_at AS createdAt
+    FROM workspace_recordings
+    WHERE session_id = ? AND student_id = ?
+      AND (? IS NULL OR version_number < ?)
+    ORDER BY version_number DESC
+    LIMIT ?
+  `).all(sessionId, studentId, beforeVersion, beforeVersion, safeLimit).map((row) => ({
+    ...row,
+    files: safeJsonParse(row.filesJson, {}),
+    result: safeJsonParse(row.resultJson, null),
+    metadata: safeJsonParse(row.metadataJson, {}),
+    filesJson: undefined,
+    resultJson: undefined,
+    metadataJson: undefined
+  }));
+}
+
+function countWorkspaceRecordings(sessionId, studentId) {
+  const row = db.prepare(`
+    SELECT COUNT(*) AS total
+    FROM workspace_recordings
+    WHERE session_id = ? AND student_id = ?
+  `).get(sessionId, studentId);
+  return Number(row?.total || 0);
+}
+
+function saveQuestionAnswer({ sessionId, studentId, examId, questionId, files, stdin = "", result, answerText = "", selectedOption = "", scratchFiles, scratchStdin = "", scratchResult }) {
+  if (!questionId) {
+    return null;
+  }
+  const updatedAt = now();
+  db.prepare(`
+    INSERT INTO question_answers (
+      session_id, student_id, exam_id, question_id, files_json, stdin_text, result_json, answer_text, selected_option,
+      scratch_files_json, scratch_stdin_text, scratch_result_json, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(session_id, student_id, question_id)
+    DO UPDATE SET
+      exam_id = excluded.exam_id,
+      files_json = excluded.files_json,
+      stdin_text = excluded.stdin_text,
+      result_json = excluded.result_json,
+      answer_text = excluded.answer_text,
+      selected_option = excluded.selected_option,
+      scratch_files_json = excluded.scratch_files_json,
+      scratch_stdin_text = excluded.scratch_stdin_text,
+      scratch_result_json = excluded.scratch_result_json,
+      updated_at = excluded.updated_at
+  `).run(
+    sessionId,
+    studentId,
+    examId,
+    questionId,
+    JSON.stringify(files || {}),
+    String(stdin || ""),
+    result === undefined ? null : JSON.stringify(result),
+    String(answerText || ""),
+    String(selectedOption || ""),
+    JSON.stringify(scratchFiles || {}),
+    String(scratchStdin || ""),
+    scratchResult === undefined ? null : JSON.stringify(scratchResult),
+    updatedAt
+  );
+  return getQuestionAnswer(sessionId, studentId, questionId);
+}
+
+function getQuestionAnswer(sessionId, studentId, questionId) {
+  const row = db.prepare(`
+    SELECT session_id AS sessionId, student_id AS studentId, exam_id AS examId,
+           question_id AS questionId, files_json AS filesJson, stdin_text AS stdinText,
+           result_json AS resultJson, answer_text AS answerText, selected_option AS selectedOption,
+           scratch_files_json AS scratchFilesJson, scratch_stdin_text AS scratchStdinText,
+           scratch_result_json AS scratchResultJson,
+           score, feedback, grading_status AS gradingStatus,
+           updated_at AS updatedAt, graded_at AS gradedAt
+    FROM question_answers
+    WHERE session_id = ? AND student_id = ? AND question_id = ?
+  `).get(sessionId, studentId, questionId);
+  return row ? {
+    ...row,
+    files: safeJsonParse(row.filesJson, {}),
+    result: safeJsonParse(row.resultJson, null),
+    scratchFiles: safeJsonParse(row.scratchFilesJson, {}),
+    scratchResult: safeJsonParse(row.scratchResultJson, null),
+    filesJson: undefined,
+    resultJson: undefined,
+    scratchFilesJson: undefined,
+    scratchResultJson: undefined
+  } : null;
+}
+
+function listQuestionAnswers(sessionId, studentId) {
+  return db.prepare(`
+    SELECT question_id AS questionId
+    FROM question_answers
+    WHERE session_id = ? AND student_id = ?
+  `).all(sessionId, studentId).map((row) => getQuestionAnswer(sessionId, studentId, row.questionId));
+}
+
+function gradeQuestionAnswer(sessionId, studentId, questionId, { score = null, feedback = "", gradingStatus = "Graded", examId = "" }) {
+  const gradedAt = now();
+  db.prepare(`
+    INSERT INTO question_answers (
+      session_id, student_id, exam_id, question_id, files_json, stdin_text, result_json, answer_text, selected_option,
+      scratch_files_json, scratch_stdin_text, scratch_result_json, score, feedback, grading_status, updated_at, graded_at
+    ) VALUES (?, ?, ?, ?, '{}', '', NULL, '', '', '{}', '', NULL, ?, ?, ?, ?, ?)
+    ON CONFLICT(session_id, student_id, question_id)
+    DO UPDATE SET score = excluded.score, feedback = excluded.feedback,
+      grading_status = excluded.grading_status, graded_at = excluded.graded_at
+  `).run(
+    sessionId,
+    studentId,
+    examId,
+    questionId,
+    score === null || score === "" ? null : Number(score),
+    String(feedback || ""),
+    gradingStatus,
+    gradedAt,
+    gradedAt
+  );
+  return getQuestionAnswer(sessionId, studentId, questionId);
+}
+
+function getWorkspace(sessionId, studentId, examId, defaultFiles, language = null) {
   const existing = db.prepare(`
     SELECT exam_id AS examId, files_json AS filesJson, last_run_json AS lastRunJson, updated_at AS updatedAt
     FROM workspaces
@@ -761,19 +1103,30 @@ function getWorkspace(sessionId, studentId, examId, defaultFiles) {
   };
 }
 
-function saveWorkspace(sessionId, studentId, examId, files) {
+function saveWorkspace(sessionId, studentId, examId, files, options = {}) {
   const updatedAt = now();
-  db.prepare(`
-    INSERT INTO workspaces (session_id, student_id, exam_id, files_json, last_run_json, updated_at)
-    VALUES (?, ?, ?, ?, NULL, ?)
-    ON CONFLICT(session_id, student_id)
-    DO UPDATE SET exam_id = excluded.exam_id, files_json = excluded.files_json, updated_at = excluded.updated_at
-  `).run(sessionId, studentId, examId, JSON.stringify(files), updatedAt);
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    db.prepare(`
+      INSERT INTO workspaces (session_id, student_id, exam_id, files_json, last_run_json, updated_at)
+      VALUES (?, ?, ?, ?, NULL, ?)
+      ON CONFLICT(session_id, student_id)
+      DO UPDATE SET exam_id = excluded.exam_id, files_json = excluded.files_json, updated_at = excluded.updated_at
+    `).run(sessionId, studentId, examId, JSON.stringify(files), updatedAt);
 
-  return {
-    files,
-    updatedAt
-  };
+    const recording = null;
+    db.exec("COMMIT");
+
+    return {
+      files,
+      updatedAt,
+      syncedAt: updatedAt,
+      recording
+    };
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
+  }
 }
 
 function setLastRun(sessionId, studentId, result) {
@@ -792,7 +1145,7 @@ function recordActivity({ sessionId, studentId, examId, eventType, payload }) {
   `).run(sessionId || null, studentId || null, examId || null, eventType, JSON.stringify(payload || {}), now());
 }
 
-function recordSubmission({ id, sessionId, studentId, examId, files, status = "Submitted" }) {
+function recordSubmission({ id, sessionId, studentId, examId, files, language = null, status = "Submitted" }) {
   const submittedAt = now();
   db.prepare(`
     INSERT INTO submissions (id, session_id, student_id, exam_id, files_json, submitted_at, status, grade_score, grade_status, teacher_feedback, reviewed_at)
@@ -809,9 +1162,11 @@ function recordSubmission({ id, sessionId, studentId, examId, files, status = "S
 
 function finalizeSessionSubmissions(sessionId) {
   const rows = db.prepare(`
-    SELECT session_id AS sessionId, student_id AS studentId, exam_id AS examId, files_json AS filesJson
-    FROM workspaces
-    WHERE session_id = ?
+    SELECT w.session_id AS sessionId, w.student_id AS studentId, w.exam_id AS examId,
+           w.files_json AS filesJson, e.language AS language
+    FROM workspaces w
+    LEFT JOIN exams e ON e.id = w.exam_id
+    WHERE w.session_id = ?
   `).all(sessionId);
 
   const created = [];
@@ -832,6 +1187,7 @@ function finalizeSessionSubmissions(sessionId) {
         studentId: row.studentId,
         examId: row.examId,
         files: JSON.parse(row.filesJson),
+        language: row.language,
         status: "Submitted"
       })
     );
@@ -880,9 +1236,33 @@ function getSubmissionById(id) {
     return null;
   }
 
+  const exam = getExamById(row.examId);
+  const answerMap = new Map(listQuestionAnswers(row.sessionId, row.studentId).map((answer) => [answer.questionId, answer]));
+  const questionAnswers = (exam?.questions || []).map((question, index) => {
+    const answer = answerMap.get(question.id);
+    const coding = /coding|debug|frontend/i.test(String(question.format || ""));
+    const answered = coding
+      ? Boolean(answer && Object.values(answer.files || {}).some((content) => String(content).trim()))
+      : Boolean(answer && (String(answer.answerText || "").trim() || String(answer.selectedOption || "") !== ""));
+    return {
+      questionId: question.id,
+      questionNumber: index + 1,
+      title: question.title,
+      prompt: question.prompt,
+      points: question.points,
+      format: question.format,
+      options: question.options || [],
+      answerGuide: question.answerGuide,
+      answered,
+      ...(answer || { files: {}, stdinText: "", result: null, scratchFiles: {}, scratchStdinText: "", scratchResult: null, score: null, feedback: "", gradingStatus: "Pending" })
+    };
+  });
+
   return {
     ...row,
-    files: JSON.parse(row.filesJson)
+    files: JSON.parse(row.filesJson),
+    questionAnswers,
+    maximumScore: questionAnswers.reduce((total, answer) => total + Number(answer.points || 0), 0)
   };
 }
 
@@ -903,17 +1283,92 @@ function gradeSubmission(id, { gradeScore = null, gradeStatus = "Reviewed", teac
   return getSubmissionById(id);
 }
 
+function buildAnswerBook({ sessionId = null, examId = null }) {
+  const sessions = sessionId
+    ? [getSessionById(sessionId)].filter(Boolean)
+    : listSessions().filter((session) => session.examId === examId);
+
+  return sessions.map((session) => {
+    const exam = getExamById(session.examId);
+    const registrations = listRegistrations().filter((registration) => registration.sessionId === session.id);
+    const submissions = listSubmissions().filter((submission) => submission.sessionId === session.id);
+    const identities = new Map();
+    registrations.forEach((registration) => identities.set(registration.studentId, registration));
+    submissions.forEach((submission) => {
+      if (!identities.has(submission.studentId)) identities.set(submission.studentId, submission);
+    });
+    return {
+      session,
+      exam,
+      students: [...identities.values()].map((registration) => {
+        const submissionSummary = submissions.find((submission) => submission.studentId === registration.studentId);
+        const submission = submissionSummary ? getSubmissionById(submissionSummary.id) : null;
+        const answerMap = new Map(listQuestionAnswers(session.id, registration.studentId).map((answer) => [answer.questionId, answer]));
+        const questions = (exam?.questions || []).map((question, index) => ({
+          number: index + 1,
+          ...question,
+          answer: answerMap.get(question.id) || null
+        }));
+        return {
+          studentId: registration.studentId,
+          studentNumber: registration.studentNumber,
+          fullName: registration.fullName,
+          submittedAt: submission?.submittedAt || null,
+          finalScore: submission?.gradeScore ?? null,
+          gradeStatus: submission?.gradeStatus || "Not submitted",
+          teacherFeedback: submission?.teacherFeedback || "",
+          questions
+        };
+      })
+    };
+  });
+}
+
+function buildSubmissionAnswerBook(submissionId) {
+  const submission = getSubmissionById(submissionId);
+  if (!submission) return [];
+  const session = getSessionById(submission.sessionId);
+  const exam = getExamById(submission.examId);
+  const answerMap = new Map(submission.questionAnswers.map((answer) => [answer.questionId, answer]));
+  return [{
+    session,
+    exam,
+    students: [{
+      studentId: submission.studentId,
+      studentNumber: submission.studentNumber,
+      fullName: submission.fullName,
+      submittedAt: submission.submittedAt,
+      finalScore: submission.gradeScore,
+      gradeStatus: submission.gradeStatus,
+      teacherFeedback: submission.teacherFeedback,
+      questions: (exam?.questions || []).map((question, index) => ({ number: index + 1, ...question, answer: answerMap.get(question.id) || null }))
+    }]
+  }];
+}
+
+function deleteSubmission(id) {
+  const submission = getSubmissionById(id);
+  if (!submission) return null;
+  db.prepare(`DELETE FROM submissions WHERE id = ?`).run(id);
+  db.prepare(`DELETE FROM question_answers WHERE session_id = ? AND student_id = ?`).run(submission.sessionId, submission.studentId);
+  db.prepare(`DELETE FROM workspaces WHERE session_id = ? AND student_id = ?`).run(submission.sessionId, submission.studentId);
+  return submission;
+}
+
 module.exports = {
   dbPath,
   listExams,
   getExamById,
   createExam,
+  updateExam,
   listSessions,
   getSessionById,
   createSession,
+  updateSession,
   updateSessionStatus,
   listStudents,
   createStudent,
+  updateStudent,
   importStudents,
   listRegistrations,
   createRegistration,
@@ -934,10 +1389,20 @@ module.exports = {
   getOpenTimer,
   getWorkspace,
   saveWorkspace,
+  recordWorkspaceVersion,
+  listWorkspaceRecordings,
+  countWorkspaceRecordings,
+  saveQuestionAnswer,
+  getQuestionAnswer,
+  listQuestionAnswers,
+  gradeQuestionAnswer,
   setLastRun,
   recordActivity,
   recordSubmission,
   listSubmissions,
   getSubmissionById,
-  gradeSubmission
+  gradeSubmission,
+  deleteSubmission,
+  buildAnswerBook,
+  buildSubmissionAnswerBook
 };

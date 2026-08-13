@@ -2,6 +2,67 @@ const DEFAULT_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
 
 const FORMATS = ["Coding", "Multiple Choice", "Short Question", "Long Question", "Database", "Frontend", "Debugging"];
 
+function extractLabeledItems(value = "") {
+  const text = String(value).replace(/\r/g, " ");
+  const markerPattern = /(?:^|\s)(?:\(([A-Ha-h])\)\.?|([A-Ha-h])\s*(?:\.\)|\)|\.|:|\-))\s+/g;
+  const markers = [];
+  let match;
+  while ((match = markerPattern.exec(text))) {
+    markers.push({ label: (match[1] || match[2]).toUpperCase(), start: match.index, contentStart: markerPattern.lastIndex });
+  }
+  const sequential = markers.filter((marker, index) => index === 0 || marker.label.charCodeAt(0) === markers[index - 1].label.charCodeAt(0) + 1);
+  if (sequential.length < 2 || sequential[0].label !== "A" || sequential[1].label !== "B") return [];
+  return sequential.map((marker, index) => {
+    const next = sequential[index + 1];
+    return text.slice(marker.contentStart, next ? next.start : text.length).replace(/\s+/g, " ").trim();
+  }).filter(Boolean);
+}
+
+function isWrittenSubquestionSet(items = [], context = "", requestedFormat = "") {
+  const surrounding = `${requestedFormat} ${context}`.toLowerCase();
+  if (/\b(short questions?|short answers?|long questions?|long answers?|essay|written response|theory)\b/.test(surrounding)) return true;
+  if (items.some((item) => /\b\d+(?:\.\d+)?\s*marks?\b/i.test(item))) return true;
+  const instructionPattern = /^(?:explain|describe|discuss|evaluate|compare|contrast|justify|define|outline|summarize|analyse|analyze|write|create|implement|calculate|show|prove|identify|state|what|why|how)\b/i;
+  const instructionCount = items.filter((item) => instructionPattern.test(item) || /\?$/.test(item.trim())).length;
+  return instructionCount >= Math.min(2, items.length);
+}
+
+function extractLabeledOptions(value = "", context = "", requestedFormat = "") {
+  const items = extractLabeledItems(value);
+  if (items.length < 2) return [];
+  const surrounding = `${requestedFormat} ${context} ${value}`.toLowerCase();
+  if (/\b(multiple choice|mcq|choose (?:one|the correct|the best)|select one|which (?:of|is|statement))\b/.test(surrounding)) return items;
+  return isWrittenSubquestionSet(items, context, requestedFormat) ? [] : items;
+}
+
+function normalizeFormat(question = {}) {
+  const requestedFormat = question.format || question.questionType || question.type || "";
+  const context = `${question.section || ""} ${question.title || ""}`;
+  const labeledOptions = extractLabeledOptions(question.prompt || "", context, requestedFormat);
+  const options = Array.isArray(question.options) ? question.options.filter((option) => String(option).trim()) : [];
+  if (labeledOptions.length >= 2) return "Multiple Choice";
+  const requested = String(question.format || question.questionType || question.type || "").trim().toLowerCase();
+  const aliases = {
+    code: "Coding", coding: "Coding", programming: "Coding", practical: "Coding",
+    html: "Frontend", css: "Frontend", web: "Frontend", frontend: "Frontend",
+    debug: "Debugging", debugging: "Debugging", correction: "Debugging",
+    mcq: "Multiple Choice", multiplechoice: "Multiple Choice", "multiple choice": "Multiple Choice", choice: "Multiple Choice",
+    short: "Short Question", "short answer": "Short Question", "short question": "Short Question",
+    long: "Long Question", essay: "Long Question", "long answer": "Long Question", "long question": "Long Question",
+    database: "Database", sql: "Database"
+  };
+  if (aliases[requested]) return aliases[requested];
+  if (options.length >= 2) return "Multiple Choice";
+  const text = `${question.title || ""} ${question.prompt || ""} ${question.starter || ""}`.toLowerCase();
+  if (/\b(multiple choice|choose|select one|which of)\b/.test(text)) return "Multiple Choice";
+  if (/\b(debug|fix|correct|error|bug|syntax)\b/.test(text)) return "Debugging";
+  if (/\b(sql|database|query|select|join)\b/.test(text)) return "Database";
+  if (/\b(html|css|webpage|web page|frontend|layout)\b/.test(text)) return "Frontend";
+  if (/\b(write|create|implement|build|program|code|function|class|struct|algorithm)\b/.test(text) || question.starter) return "Coding";
+  if (/\b(discuss|evaluate|justify|essay|critically|in detail)\b/.test(text)) return "Long Question";
+  return "Short Question";
+}
+
 const questionSchema = {
   type: "object",
   additionalProperties: false,
@@ -9,7 +70,7 @@ const questionSchema = {
     questions: {
       type: "array",
       minItems: 1,
-      maxItems: 12,
+      maxItems: 50,
       items: {
         type: "object",
         additionalProperties: false,
@@ -49,17 +110,25 @@ const questionSchema = {
 
 function normalizeQuestions(questions = []) {
   return (Array.isArray(questions) ? questions : [])
-    .map((question, index) => ({
-      id: String(question?.id || `question-${index + 1}`),
-      format: FORMATS.includes(question?.format) ? question.format : "Short Question",
-      title: String(question?.title || `Question ${index + 1}`).trim(),
-      section: String(question?.section || "").trim(),
-      prompt: String(question?.prompt || "").trim(),
-      points: Number(question?.points || 10),
-      options: Array.isArray(question?.options) ? question.options.map(String) : [],
-      starter: String(question?.starter || "").trim(),
-      answerGuide: String(question?.answerGuide || "").trim()
-    }))
+    .map((question, index) => {
+      const prompt = String(question?.prompt || "").trim();
+      const suppliedOptions = Array.isArray(question?.options) ? question.options.map(String).filter((option) => option.trim()) : [];
+      const options = suppliedOptions.length >= 2
+        ? suppliedOptions
+        : extractLabeledOptions(prompt, `${question?.section || ""} ${question?.title || ""}`, question?.format || "");
+      const prepared = { ...question, prompt, options };
+      return {
+        id: String(question?.id || `question-${index + 1}`),
+        format: normalizeFormat(prepared),
+        title: String(question?.title || `Question ${index + 1}`).trim(),
+        section: String(question?.section || "").trim(),
+        prompt,
+        points: Number(question?.points || 10),
+        options,
+        starter: String(question?.starter || "").trim(),
+        answerGuide: String(question?.answerGuide || "").trim()
+      };
+    })
     .filter((question) => question.title && question.prompt)
     .map((question) => ({
       ...question,
@@ -151,17 +220,6 @@ function summarizeText(text = "", maxLength = 280) {
   return compact.length > maxLength ? `${compact.slice(0, maxLength).trim()}...` : compact;
 }
 
-function starterTemplateForLanguage(language = "") {
-  const normalized = String(language || "").trim().toLowerCase();
-  if (normalized === "rust") {
-    return "fn solution() {\n    // TODO: implement\n}";
-  }
-  if (normalized === "python") {
-    return "def solution():\n    pass";
-  }
-  return "";
-}
-
 function detectMetadata(sourceText = "", fallback = {}) {
   const text = String(sourceText);
   const lower = text.toLowerCase();
@@ -208,20 +266,67 @@ function detectMetadata(sourceText = "", fallback = {}) {
   };
 }
 
+function stripListPrefix(value = "") {
+  return String(value).replace(/^\s*(?:[-*]\s+|(?:\d+|[a-z])\s*[\).:\-]\s+)/i, "").trim();
+}
+
+function isAdministrativeHeading(value = "") {
+  const text = stripListPrefix(value).toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+  return /^(?:general )?(?:instructions?|rules?|procedures?|guidelines?|information|important information|candidate instructions?|student instructions?|exam instructions?|examination rules?|assessment rules?|academic integrity|before you begin|before the exam|during the exam|submission instructions?|submission procedures?|how to submit|technical requirements?|system requirements?|introduction|overview)$/.test(text);
+}
+
+function isAdministrativeLine(value = "") {
+  const text = stripListPrefix(value).toLowerCase().replace(/\s+/g, " ").trim();
+  if (!text) return true;
+  if (/^(?:student|candidate)\s*(?:name|id|number|signature)|^(?:date|tutor|lecturer|course|unit|subject)\s*(?:code|name)?\s*:/i.test(text)) return true;
+  return /^(?:time allowed|duration|reading time|total marks?|maximum marks?|number of questions?|exam date|assessment weight|worth\s+\d+%)/.test(text)
+    || /^(?:read|check)\s+(?:all|each|the)\s+(?:questions?|instructions?|pages?)/.test(text)
+    || /^(?:answer|attempt|complete)\s+(?:all|any|each|the)\s+(?:questions?|sections?|parts?)/.test(text)
+    || /^(?:do not|don['’]?t)\s+(?:start|begin|open|turn|leave|communicate|talk|use|access|remove)/.test(text)
+    || /^(?:all|any|no)\s+(?:digital|electronic|mobile|communication|reference)\s+(?:devices?|equipment|materials?)/.test(text)
+    || /\b(?:mobile phones?|smart watches?|electronic devices?)\b.*\b(?:off|prohibited|permitted|allowed)\b/.test(text)
+    || /\b(?:invigilator|proctor|exam supervisor)\b/.test(text)
+    || /^(?:raise your hand|remain seated|keep silent|no talking|no communication|internet access is|unauthori[sz]ed materials?)/.test(text)
+    || /\b(?:cheating|plagiarism|academic misconduct|failure to comply)\b/.test(text)
+    || /^(?:write|enter)\s+your\s+(?:name|student id|student number|candidate number)/.test(text)
+    || /^(?:save|upload|submit|close|exit)\s+(?:your|the|all)\s+(?:work|answers?|files?|exam|application)/.test(text)
+    || /^(?:marks? (?:are|will be)|the marks? for|each question is worth|all answers must be|answers? should be written)/.test(text)
+    || /^(?:end of (?:test|exam|paper)|good luck|please answer the following questions?)\.?$/.test(text);
+}
+
 function normalizeSourceText(sourceText = "") {
   const cleanedLines = String(sourceText)
     .replace(/\r/g, "")
     .split("\n")
     .map((line) => line.replace(/[ \t]+/g, " ").trim())
     .filter(Boolean)
-    .filter((line) => !/^(student name|student id|date|tutor|lecturer|course code|unit code)\b\s*:?\s*$/i.test(line))
-    .filter((line) => !/^(read all questions carefully|time allowed|total marks|all digital devices must be turned off|don.?t start writing until you are told to|all answers .* written|all forms of plagiarism|end of test)$/i.test(line))
-    .filter((line) => !/^(open book|open workbook|open work-book|worth \d+%|please answer the following questions\.?)$/i.test(line));
+    .filter((line) => !isAdministrativeLine(line));
 
   return cleanedLines
     .join("\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+function hasAssessmentEvidence(value = "", section = "") {
+  const text = String(value).trim();
+  if (!text || isAdministrativeHeading(text)) return false;
+  const firstLine = stripListPrefix(text.split("\n")[0]);
+  const sectionFormat = inferFormatFromSection(section);
+  const hasMarks = /(?:\(|\[)?\d+(?:\.\d+)?\s*marks?(?:\)|\])?/i.test(text);
+  const hasQuestionWording = /\?|^(?:what|why|when|where|which|who|how)\b/i.test(firstLine);
+  const hasTaskVerb = /^(?:write|create|implement|build|develop|define|explain|describe|discuss|evaluate|compare|contrast|justify|calculate|compute|predict|trace|identify|state|list|outline|analyse|analyze|find|correct|debug|design|convert|complete|select|choose|determine|use)\b/i.test(firstLine);
+  const hasChoices = /(?:^|\n)\s*(?:\(?a\)?[\).:\-])\s+.+(?:\n|[ \t]+)\s*(?:\(?b\)?[\).:\-])\s+/i.test(text);
+  const hasCode = /\b(?:fn\s+main|def\s+\w+|class\s+\w+|struct\s+\w+|let\s+\w+|println?!|console\.log|select\s+.+\s+from|<html|function\s+\w+)\b/i.test(text);
+  const adminOnly = text.split(/\n+/).filter(Boolean).every((line) => isAdministrativeLine(line) || isAdministrativeHeading(line));
+  return !adminOnly && Boolean(sectionFormat || hasMarks || hasQuestionWording || hasTaskVerb || hasChoices || hasCode || /\bgiven the following\b/i.test(text));
+}
+
+function keepAssessmentQuestions(questions = []) {
+  return questions.filter((question) => {
+    const content = `${question.title || ""}\n${question.prompt || ""}`;
+    return !isAdministrativeHeading(question.title) && hasAssessmentEvidence(content, question.section || "");
+  });
 }
 
 function splitQuestionBlocks(sourceText = "") {
@@ -234,19 +339,31 @@ function splitQuestionBlocks(sourceText = "") {
   const blocks = [];
   let current = null;
   let currentSection = "";
+  let ignoringAdministrativeSection = false;
 
-  const headingPattern = /^(question\s+(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\b|q\s*\d+\b|\d+[\).:-])\s*(.*)$/i;
-  const sectionPattern = /^(part\s+[a-z0-9]+\b|section\s+[a-z0-9]+\b)\s*[:\-]?\s*(.*)$/i;
+  const headingPattern = /^(question\s+(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\b[\s.):-]*|q\s*\d+\b[\s.):-]*|\d+[\).:-]\s*)(.*)$/i;
+  const sectionPattern = /^(part\s+[a-z0-9]+\b|section\s+[a-z0-9]+\b)\s*[:\-–—]?\s*(.*)$/i;
 
   for (const line of lines) {
     const sectionMatch = line.match(sectionPattern);
     if (sectionMatch) {
       currentSection = [sectionMatch[1], sectionMatch[2]].filter(Boolean).join(" ").trim();
+      ignoringAdministrativeSection = isAdministrativeHeading(sectionMatch[2] || "");
+      continue;
+    }
+
+    if (isAdministrativeHeading(line)) {
+      if (current) blocks.push(current);
+      current = null;
+      currentSection = "";
+      ignoringAdministrativeSection = true;
       continue;
     }
 
     const match = line.match(headingPattern);
     if (match) {
+      if (ignoringAdministrativeSection && !hasAssessmentEvidence(match[2], currentSection)) continue;
+      ignoringAdministrativeSection = false;
       if (current) {
         blocks.push(current);
       }
@@ -255,14 +372,14 @@ function splitQuestionBlocks(sourceText = "") {
       const trailing = match[2].trim();
       current = {
         heading,
-        title: trailing || heading,
-        lines: trailing ? [line] : [heading],
+        title: trailing || "",
+        lines: trailing ? [trailing] : [],
         section: currentSection
       };
       continue;
     }
 
-    if (current) {
+    if (current && !isAdministrativeLine(line)) {
       current.lines.push(line);
     }
   }
@@ -274,20 +391,37 @@ function splitQuestionBlocks(sourceText = "") {
   return blocks
     .map((block, index) => ({
       ...block,
-      title:
-        block.title === block.heading
-          ? `Imported Question ${index + 1}`
-          : block.title.replace(/^[\-:\.)\s]+/, "").trim(),
+      number: index + 1,
+      title: block.title.replace(/^[\-:\.)\s]+/, "").trim() || `Question ${index + 1}`,
       body: block.lines.join("\n").trim(),
       section: block.section || ""
     }))
-    .filter((block) => block.body.length > 20);
+    .filter((block) => block.body.trim().length > 0)
+    .filter((block) => hasAssessmentEvidence(`${block.title}\n${block.body}`, block.section));
 }
 
-function inferFormatFromBlock(blockText = "", testType = "Coding") {
-  const text = String(blockText).toLowerCase();
+function inferFormatFromSection(section = "") {
+  const title = String(section).toLowerCase().replace(/[^a-z0-9+#&]+/g, " ").trim();
+  if (!title) return "";
+  if (/\b(multiple choice|multiple choices|mcq|objective questions?|choose (?:one|the correct)|select one)\b/.test(title)) return "Multiple Choice";
+  if (/\b(short questions?|short answers?|brief answers?|concepts?|theory)\b/.test(title)) return "Short Question";
+  if (/\b(long questions?|long answers?|extended responses?|essay questions?|essays?)\b/.test(title)) return "Long Question";
+  if (/\b(debugging|debug|code correction|fix the code)\b/.test(title)) return "Debugging";
+  if (/\b(frontend|front end|html|css|web design|web development)\b/.test(title)) return "Frontend";
+  if (/\b(database|sql|queries)\b/.test(title)) return "Database";
+  if (/\b(practical coding|coding|programming|practical exercises?|programming tasks?)\b/.test(title)) return "Coding";
+  return "";
+}
 
-  if (testType === "Database" || /\bsql\b|\bquery\b|\bdatabase\b|\bselect\b|\bjoin\b|\bwhere\b|\bfrom\b/.test(text)) {
+function inferFormatFromBlock(blockText = "", testType = "Coding", section = "") {
+  const sectionFormat = inferFormatFromSection(section);
+  if (sectionFormat) return sectionFormat;
+  const text = `${section} ${blockText}`.toLowerCase();
+
+  if (/\b(multiple choice|mcq|choose|select one|which of)\b/.test(text)) {
+    return "Multiple Choice";
+  }
+  if (testType === "Database" || /\bsql\b|\bdatabase\b|\bdatabase query\b|\b(?:inner|left|right|outer) join\b|\bselect\s+.+\s+from\b/.test(text)) {
     return "Database";
   }
   if (testType === "Frontend" || /\bhtml\b|\bcss\b|\bui\b|\bform\b|\blayout\b/.test(text)) {
@@ -296,11 +430,8 @@ function inferFormatFromBlock(blockText = "", testType = "Coding") {
   if (testType === "Debugging" || /\bdebug\b|\berror\b|\bfix\b|\bsyntax\b/.test(text)) {
     return "Debugging";
   }
-  if (/\bprogram\b|\bpython\b|\bcode\b|\bfunction\b|\balgorithm\b/.test(text)) {
+  if (/\b(practical coding|programming|write (?:a |an )?(?:program|function)|implement|create (?:a |an )?(?:program|function|class|struct)|python|rust|code|function|algorithm)\b/.test(text)) {
     return "Coding";
-  }
-  if (/\bmultiple choice\b|\bchoose\b|\bwhich\b/.test(text)) {
-    return "Multiple Choice";
   }
   if (/\bessay\b|\bdiscuss\b|\bevaluate\b|\bcompare\b|\bjustify\b|\bcritically\b/.test(text)) {
     return "Long Question";
@@ -308,18 +439,48 @@ function inferFormatFromBlock(blockText = "", testType = "Coding") {
   if (/\bpseudocode\b|\bexplain\b|\bdescribe\b|\btrace\b|\bflowchart\b/.test(text)) {
     return "Short Question";
   }
-  return "Coding";
+  if (/\b(short answers?|short questions?|concepts?|theory)\b/.test(text)) {
+    return "Short Question";
+  }
+  return testType === "Mixed Format" ? "Short Question" : normalizeFormat({ format: testType });
 }
 
-function extractOptions(blockText = "") {
-  const lines = String(blockText).split("\n").map((line) => line.trim());
-  const optionPattern = /^(?:[A-Da-d][\).:-]|[-*])\s+(.+)$/;
-  const options = lines
-    .map((line) => line.match(optionPattern))
-    .filter(Boolean)
-    .map((match) => match[1].trim());
+function extractOptions(blockText = "", section = "", format = "") {
+  return extractLabeledOptions(blockText, section, format);
+}
 
-  return options.length >= 2 ? options : [];
+function extractPoints(blockText = "") {
+  const match = String(blockText).match(/\((\d+(?:\.\d+)?)\s*marks?\)|\[(\d+(?:\.\d+)?)\s*marks?\]|\b(\d+(?:\.\d+)?)\s*marks?\b/i);
+  return match ? Number(match[1] || match[2] || match[3]) : 10;
+}
+
+function cleanQuestionLabel(value = "") {
+  return String(value)
+    .replace(/\s*[\[(]?\d+(?:\.\d+)?\s*marks?[\])]?\s*$/i, "")
+    .trim();
+}
+
+function splitPromptAndAnswer(value = "") {
+  const text = String(value).trim();
+  const marker = /(?:^|\n)\s*(?:model answer|suggested answer|correct answer|answer key|answer|solution|marking guide|rubric)\s*:\s*/im;
+  const match = marker.exec(text);
+  if (!match) return { prompt: text, answerGuide: "" };
+  return {
+    prompt: text.slice(0, match.index).trim(),
+    answerGuide: text.slice(match.index + match[0].length).trim()
+  };
+}
+
+function extractGlobalAnswerKey(sourceText = "") {
+  const text = String(sourceText);
+  const heading = /(?:^|\n)\s*(?:answer key|answers|model answers)\s*:?\s*\n/im.exec(text);
+  if (!heading) return { sourceText: text, answers: new Map() };
+  const keyText = text.slice(heading.index + heading[0].length);
+  const answers = new Map();
+  const entryPattern = /(?:^|\n)\s*(?:question\s*|q\s*)?(\d+)\s*[\).:\-]\s*([\s\S]*?)(?=(?:\n\s*(?:question\s*|q\s*)?\d+\s*[\).:\-])|$)/gi;
+  let match;
+  while ((match = entryPattern.exec(keyText))) answers.set(Number(match[1]), match[2].trim());
+  return { sourceText: text.slice(0, heading.index).trim(), answers };
 }
 
 function buildStructuredFallback({
@@ -329,26 +490,32 @@ function buildStructuredFallback({
   language = "Python",
   questionCount = 4
 }) {
-  const blocks = splitQuestionBlocks(sourceText).slice(0, Math.max(1, questionCount));
+  const extractedKey = extractGlobalAnswerKey(sourceText);
+  const blocks = splitQuestionBlocks(extractedKey.sourceText).slice(0, Math.max(1, questionCount));
   if (!blocks.length) {
     return null;
   }
 
   const questions = blocks.map((block, index) => {
-    const format = inferFormatFromBlock(block.body, testType);
-    const options = extractOptions(block.body);
-    const starter = format === "Coding" ? starterTemplateForLanguage(language) : "";
+    const format = inferFormatFromBlock(block.body, testType, block.section);
+    const options = extractOptions(block.body, block.section, format);
+    const starter = "";
+    const points = extractPoints(block.body);
+    const separated = splitPromptAndAnswer(block.body);
+    const prompt = cleanQuestionLabel(separated.prompt);
+    const answerGuide = separated.answerGuide || extractedKey.answers.get(index + 1) || "";
 
     return {
-      id: `structured-${index + 1}`,
+      id: `question-${index + 1}`,
+      number: index + 1,
       format: options.length >= 2 ? "Multiple Choice" : format,
-      title: block.title || `${title || "Imported Exam"} Question ${index + 1}`,
+      title: cleanQuestionLabel(block.title) || `${title || "Imported Exam"} Question ${index + 1}`,
       section: block.section,
-      prompt: block.body,
-      points: 10,
+      prompt,
+      points,
       options,
       starter,
-      answerGuide: "Review the imported source and assess whether the student addresses the requirements in this question."
+      answerGuide
     };
   });
 
@@ -400,7 +567,7 @@ function fallbackFromText({
       prompt: `Based on this imported material, complete the following task:\n\n${chunk}`,
       points: 10,
       options: [],
-      starter: format === "Coding" ? starterTemplateForLanguage(language) : "",
+      starter: "",
       answerGuide: "Review the imported source and assess whether the student addresses the key requirements."
     };
   });
@@ -457,6 +624,15 @@ async function importQuestionsFromDocument({
   sourceText = "",
   questionCount = 4
 }) {
+  const structured = buildStructuredFallback({ sourceText, title, testType, language, questionCount });
+  if (structured && structured.questions.length >= 1) {
+    return {
+      ...structured,
+      questions: keepAssessmentQuestions(normalizeQuestions(structured.questions)).map((question, index) => ({ ...question, id: `question-${index + 1}`, number: index + 1 })),
+      mode: "structured"
+    };
+  }
+
   const prompt = [
     "You are helping a teacher turn an imported Word document into exam questions.",
     `Exam title: ${title || "Imported Exam"}`,
@@ -468,6 +644,8 @@ async function importQuestionsFromDocument({
     "If the source already contains numbered questions, preserve that structure and split each numbered question into its own draft item.",
     "If the source contains Part A / Part B or Section headings, carry that section label into each related question.",
     "Remove non-question boilerplate such as student name fields, dates, integrity notices, general invigilator instructions, and end-of-test markers.",
+    "A numbered rule or procedure is not a question. Ignore introductions, permitted-material notes, timing information, conduct rules, login steps, submission procedures, and candidate declarations even when they use 1., 2., 3. numbering.",
+    "Only import items that ask the student to produce an assessable answer or code response.",
     "Use the original question numbering and wording where practical, but rewrite into clean, organized prompts when the source is noisy.",
     "Keep questions realistic for the exam duration.",
     "Use mixed formats when it fits the source material.",
@@ -489,7 +667,7 @@ async function importQuestionsFromDocument({
     ]);
 
     return {
-      questions: normalizeQuestions(parsed.questions),
+      questions: keepAssessmentQuestions(normalizeQuestions(parsed.questions)),
       summary: String(parsed.summary || "").trim(),
       metadata: parsed.metadata || detectMetadata(sourceText, { testType, language, durationMinutes }),
       mode: "ai"

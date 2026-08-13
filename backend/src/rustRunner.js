@@ -107,17 +107,23 @@ function runProcess(command, args, cwd, stdin = "", timeoutMs = 7000) {
     let stdout = "";
     let stderr = "";
     let finished = false;
+    let timedOut = false;
+
+    const stopProcessTree = () => {
+      if (process.platform === "win32" && child.pid) {
+        spawnSync("taskkill", ["/pid", String(child.pid), "/T", "/F"], {
+          stdio: "ignore",
+          windowsHide: true
+        });
+        return;
+      }
+      child.kill("SIGKILL");
+    };
 
     const timer = setTimeout(() => {
       if (!finished) {
-        finished = true;
-        child.kill();
-        resolve({
-          ok: false,
-          stdout,
-          stderr: `${stderr}\nExecution timed out after ${Math.floor(timeoutMs / 1000)} seconds.`.trim(),
-          exitCode: -1
-        });
+        timedOut = true;
+        stopProcessTree();
       }
     }, timeoutMs);
 
@@ -139,10 +145,12 @@ function runProcess(command, args, cwd, stdin = "", timeoutMs = 7000) {
       clearTimeout(timer);
       finished = true;
       resolve({
-        ok: exitCode === 0,
+        ok: !timedOut && exitCode === 0,
         stdout,
-        stderr,
-        exitCode
+        stderr: timedOut
+          ? `${stderr}\nExecution timed out after ${Math.floor(timeoutMs / 1000)} seconds.`.trim()
+          : stderr,
+        exitCode: timedOut ? -1 : exitCode
       });
     });
 

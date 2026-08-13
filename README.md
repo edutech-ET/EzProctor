@@ -1,124 +1,111 @@
-# CloudIDE Secure Pro
+﻿# EzProctor Exam
 
-CloudIDE Secure Pro is a desktop coding exam platform that combines:
+EzProctor Exam is an educator-controlled coding assessment platform with exam authoring, secure student check-in, Python/Rust/HTML execution, autosaved question responses, live session monitoring, grading, and PDF answer books.
 
-- An Electron lockdown client
-- A built-in Python and Rust CloudIDE exam workspace
-- A Node.js monitoring backend with WebSocket streaming
-- A React teacher dashboard
-- A native Windows keyboard hook addon for OS-level shortcut blocking
+![Educator console](docs/screenshots/teacher-admin-command-center.png)
 
-## Workspace layout
+## Quick Start with Docker
 
-- `electron/`: desktop lockdown client
-- `backend/`: exam session APIs, event ingest, risk engine, live stream server
-- `dashboard/`: teacher monitoring panel
-- `native/keyboard-hook/`: Windows native addon
-- `docs/`: role-based user guides and operational docs
+```bash
+git clone https://github.com/edutech-ET/EzProctor.git
+cd EzProctor
+cp .env.example .env
+docker compose up -d --build
+```
 
-## User Guides
+Open the educator console at `http://localhost:8787/admin-app/` and the student check-in page at `http://localhost:8787/exam-mode`.
 
-- Role-based guide (Admin, Teacher, Student): [docs/USER_GUIDE.md](docs/USER_GUIDE.md)
+## Product Videos
+
+| Walkthrough | Description |
+| --- | --- |
+| [Implementation video](docs/videos/implementation-guide.mp4) | Docker deployment, configuration, validation, backup, and upgrades |
+| [Educator demo](docs/videos/educator-demo.mp4) | Question import, model answers, sessions, grading, and PDF export |
+| [Student demo](docs/videos/student-demo.mp4) | Check-in, question navigation, Python testing, autosave, and submission |
+
+GitHub displays MP4 links as downloadable/playable repository assets.
+
+## Guides
+
+- [Installation Guide](docs/INSTALLATION_GUIDE.md)
+- [Implementation Guide](docs/IMPLEMENTATION_GUIDE.md)
+- [Role-Based User Guide](docs/USER_GUIDE.md)
+
+## Core Capabilities
+
+- Import questions from Word, Markdown, text, CSV, and JSON.
+- Ignore introductions, candidate rules, procedures, and other non-question content.
+- Classify coding, frontend, debugging, multiple-choice, short, and long questions.
+- Import and review model-answer mappings for advisory pre-grading.
+- Create sessions, assign learners, approve check-ins, and release exams.
+- Run Python and Rust code or refresh an HTML preview during practical exams.
+- Keep the latest official answer for every student and question synchronized.
+- Grade question by question or save all marks and feedback together.
+- Export individual student, session-wide, and exam-wide PDF answer books.
+- Run as a Docker web deployment or Electron student desktop client.
+
+## Screenshots
+
+### Student Check-In
+
+![Student check-in](docs/screenshots/student-login-exam-mode.png)
+
+### Student IDE
+
+![Student IDE](docs/screenshots/student-ide.png)
+
+## Architecture
+
+```mermaid
+flowchart LR
+  Educator[Educator Browser] --> App[EzProctor API + Dashboard]
+  Student[Student Electron Client] --> App
+  App --> DB[(SQLite Volume)]
+  App --> Python[Python Runner]
+  App --> Rust[Rust Runner]
+  App --> HTML[HTML Preview]
+```
+
+The Docker image includes Python and Rust. Native Windows Rust execution requires Visual Studio Build Tools with the C++ workload when using the MSVC Rust target.
 
 ## Development
 
-1. Install dependencies at the repo root with `npm install`
-2. Copy `.env.example` to `.env` and update values
-3. Run `npm run dev`
-
-This starts:
-
-- Backend and exam IDE on `http://localhost:8787`
-- Dashboard on `http://localhost:5173`
-- Electron client once both services are available
-
-Rust note:
-- To run Rust exam code, install Rust so `rustc` is available on PATH (or set `RUSTC_EXECUTABLE` in `.env`).
-- Rust exam workspaces use `Cargo.toml` and `src/main.rs`. If a prior Python file exists, it is retained and Rust files are scaffolded automatically.
-
-## Native hook build
-
-The Windows lockdown layer is optional during frontend/backend development.
-
-Build it with:
-
 ```powershell
-npm run build:native
+npm ci
+npm run build:dashboard
+npm run dev:backend
 ```
 
-If the addon is unavailable, the Electron app still launches and reports that native lockdown is not active.
-
-## Packaging
-
-Build the dashboard bundle and Windows installer:
+For the complete Electron development stack:
 
 ```powershell
-npm run build
+npm run dev
 ```
 
-Installer output:
-
-- `dist/CloudIDE Secure Pro Setup.exe`
-
-## Docker
-
-Run the backend + admin UI in one container:
+Build the Windows student installer:
 
 ```powershell
-docker compose up --build
+npm run build:student
 ```
 
-Open:
+## Data and Security
 
-- `http://localhost:8787/` (student exam pages)
-- `http://localhost:8787/admin` (teacher admin)
-- `http://localhost:8787/admin-app` (React dashboard)
+- Application data is stored in `backend/data` locally or the `ezproctor_data` Docker volume.
+- `.env`, databases, logs, temporary files, and exported student records are excluded from Git.
+- Production should be placed behind HTTPS and restricted to trusted networks.
+- Advisory grading never finalizes marks without educator confirmation.
+- Organizations must define retention, privacy, accessibility, and invigilation procedures appropriate to local requirements.
 
-Notes:
-- Container persists database files in a named volume mounted at `/app/backend/data`.
-- Runtime includes `python3`, `rustc`, and `cargo` for Python/Rust exam execution.
+## Validation
 
-## Netlify Project Website
-
-This repo includes a dedicated project-introduction site in:
-
-- `marketing-site/`
-
-Netlify configuration is already added in:
-
-- `netlify.toml` (publish directory set to `marketing-site`)
-
-Deploy steps:
-1. Push this repo to GitHub.
-2. In Netlify, click **Add new site** -> **Import from Git**.
-3. Select this repository.
-4. Build settings:
-   - Build command: leave empty
-   - Publish directory: `marketing-site`
-5. Deploy site.
-
-## GitHub Upload
-
-If this folder is not yet a git repo:
-
-```powershell
-git init
-git add .
-git commit -m "feat: dockerize cloudide secure pro"
+```bash
+docker compose config
+npm run build:dashboard
+node --check backend/src/server.js
 ```
 
-Create your repository on GitHub, then push:
+A full Docker image build additionally requires a running Docker engine.
 
-```powershell
-git branch -M main
-git remote add origin https://github.com/<your-username>/<your-repo>.git
-git push -u origin main
-```
+## License
 
-## Security notes
-
-- Electron enforces domain allow-list navigation
-- Exam tokens are injected through a preload-safe bridge
-- The native addon is the only layer meant to block Windows shortcuts
-- Browser-only controls are not sufficient for high-stakes exams
-- You should pair this app with kiosk policies, device enrollment, and admin privileges in production
+No open-source license has been selected yet. All rights are reserved until the project owner adds a license file.

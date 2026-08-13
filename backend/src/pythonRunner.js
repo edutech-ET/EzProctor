@@ -1,9 +1,9 @@
 const fs = require("fs/promises");
 const os = require("os");
 const path = require("path");
-const { spawn } = require("child_process");
+const { spawn, spawnSync } = require("child_process");
 
-const pythonCandidates = [process.env.PYTHON_EXECUTABLE, "py", "python"].filter(Boolean);
+const pythonCandidates = [process.env.PYTHON_EXECUTABLE, "python", "py"].filter(Boolean);
 
 function isMissingInterpreter(result) {
   return (
@@ -29,17 +29,23 @@ function runProcess(command, args, cwd, stdin) {
     let stdout = "";
     let stderr = "";
     let finished = false;
+    let timedOut = false;
+
+    const stopProcessTree = () => {
+      if (process.platform === "win32" && child.pid) {
+        spawnSync("taskkill", ["/pid", String(child.pid), "/T", "/F"], {
+          stdio: "ignore",
+          windowsHide: true
+        });
+        return;
+      }
+      child.kill("SIGKILL");
+    };
 
     const timer = setTimeout(() => {
       if (!finished) {
-        finished = true;
-        child.kill();
-        resolve({
-          ok: false,
-          stdout,
-          stderr: `${stderr}\nExecution timed out after 5 seconds.`.trim(),
-          exitCode: -1
-        });
+        timedOut = true;
+        stopProcessTree();
       }
     }, 5000);
 
@@ -61,10 +67,10 @@ function runProcess(command, args, cwd, stdin) {
       clearTimeout(timer);
       finished = true;
       resolve({
-        ok: exitCode === 0,
+        ok: !timedOut && exitCode === 0,
         stdout,
-        stderr,
-        exitCode
+        stderr: timedOut ? `${stderr}\nExecution timed out after 5 seconds.`.trim() : stderr,
+        exitCode: timedOut ? -1 : exitCode
       });
     });
 

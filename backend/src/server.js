@@ -11,12 +11,21 @@ const { getDefaultFilesForLanguage, mapFilesForLanguage } = require("./examStore
 const { runPythonWorkspace } = require("./pythonRunner");
 const { runRustWorkspace } = require("./rustRunner");
 const { generateQuestionsWithAI, importQuestionsFromDocument } = require("./aiQuestionGenerator");
+const { suggestQuestionGrade } = require("./gradingAssistant");
+const { mapModelAnswers, parseModelAnswers } = require("./modelAnswerImporter");
+const { createAnswerBookPdf } = require("./answerBookPdf");
 const {
   approveRegistration,
+  buildAnswerBook,
+  buildSubmissionAnswerBook,
   createExam,
   createRegistration,
   createSession,
   createStudent,
+  updateExam,
+  updateSession,
+  updateStudent,
+  deleteSubmission,
   deleteExam,
   deleteSession,
   deleteStudent,
@@ -37,6 +46,9 @@ const {
   listStudents,
   listSubmissions,
   getSubmissionById,
+  getQuestionAnswer,
+  saveQuestionAnswer,
+  gradeQuestionAnswer,
   markRegistrationCheckedIn,
   markStudentCheckedIn,
   recordActivity,
@@ -78,7 +90,7 @@ app.get("/ide", (_req, res) => {
   res.sendFile(path.resolve(publicDir, "ide.html"));
 });
 
-app.get("/admin", (_req, res) => {
+app.get("/admin-legacy", (_req, res) => {
   res.sendFile(path.resolve(publicDir, "admin.html"));
 });
 
@@ -90,6 +102,13 @@ if (fs.existsSync(dashboardDistDir)) {
   });
   app.get("/admin-app/*", (_req, res) => {
     res.sendFile(path.resolve(dashboardDistDir, "index.html"));
+  });
+  app.get("/admin", (_req, res) => {
+    res.redirect("/admin-app");
+  });
+} else {
+  app.get("/admin", (_req, res) => {
+    res.sendFile(path.resolve(publicDir, "admin.html"));
   });
 }
 
@@ -119,6 +138,9 @@ function normalizeRuntimeLanguage(language = "") {
   if (normalized.includes("rust") || normalized.includes("rush") || normalized === "rs") {
     return "Rust";
   }
+  if (normalized.includes("html") || normalized.includes("frontend") || normalized === "web") {
+    return "HTML";
+  }
   return "Python";
 }
 
@@ -146,7 +168,53 @@ async function runWorkspaceByLanguage(language, files, stdin) {
   if (language === "Rust") {
     return runRustWorkspace(files, stdin);
   }
+  if (language === "HTML") {
+    return {
+      ok: true,
+      stdout: "HTML preview refreshed successfully.",
+      stderr: "",
+      exitCode: 0,
+      command: "browser preview index.html",
+      previewHtml: files["index.html"] || ""
+    };
+  }
   return runPythonWorkspace(files, stdin);
+}
+
+function escapeHtml(value = "") {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function answerBookHtml(groups, title) {
+  const sections = groups.map(({ session, exam, students }) => `
+    <section class="session">
+      <header><div><span>Session</span><h2>${escapeHtml(session.sessionName)}</h2><p>${escapeHtml(exam?.title || session.examTitle)} · ${escapeHtml(exam?.language || session.language)} · ${exam?.durationMinutes || session.durationMinutes} minutes</p></div><strong>${students.length} students</strong></header>
+      ${students.length ? students.map((student) => `
+        <article class="student">
+          <div class="student-head"><div><span>${escapeHtml(student.studentNumber)}</span><h3>${escapeHtml(student.fullName)}</h3></div><div class="score">${student.finalScore ?? "--"}<small>Final score</small></div></div>
+          ${student.questions.map((question) => {
+            const answer = question.answer;
+            const files = answer ? Object.entries(answer.files || {}).map(([name, content]) => `<div class="file"><strong>${escapeHtml(name)}</strong><pre>${escapeHtml(content)}</pre></div>`).join("") : "";
+            const selectedText = answer?.selectedOption !== "" ? question.options?.[Number(answer.selectedOption)] : "";
+            const output = answer?.result ? [answer.result.stdout, answer.result.stderr].filter(Boolean).join("\n") : "";
+            return `<section class="question"><div class="question-head"><div><span>Question ${question.number}</span><h4>${escapeHtml(question.title)}</h4></div><b>${answer ? "Answered" : "Unanswered"} · ${answer?.score ?? "--"}/${question.points}</b></div><p>${escapeHtml(question.prompt)}</p>${answer?.answerText ? `<label>Written answer</label><pre>${escapeHtml(answer.answerText)}</pre>` : ""}${selectedText ? `<label>Selected answer</label><pre>${escapeHtml(selectedText)}</pre>` : ""}${files}${answer?.stdinText ? `<label>Test input</label><pre>${escapeHtml(answer.stdinText)}</pre>` : ""}${files ? `<label>Latest test result</label><pre>${escapeHtml(output || (answer ? "Not run" : "No answer"))}</pre>` : ""}${answer?.feedback ? `<p class="feedback"><strong>Feedback:</strong> ${escapeHtml(answer.feedback)}</p>` : ""}</section>`;
+          }).join("")}
+          ${student.teacherFeedback ? `<p class="feedback overall"><strong>Overall feedback:</strong> ${escapeHtml(student.teacherFeedback)}</p>` : ""}
+        </article>`).join("") : `<p class="empty">No students are registered for this session.</p>`}
+    </section>`).join("");
+
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>body{font:14px Georgia,serif;color:#17231d;margin:32px;background:#f5f2e9}main{max-width:1050px;margin:auto}.cover{padding:32px;background:#173a2d;color:white;border-radius:16px;margin-bottom:24px}.cover h1{margin:5px 0}.session,.student,.question{background:white;border:1px solid #d7ddd7;border-radius:14px;padding:20px;margin:16px 0}.session>header,.student-head,.question-head{display:flex;justify-content:space-between;gap:20px;align-items:flex-start}.session h2,.student h3,.question h4{margin:4px 0}.session p,.question p{line-height:1.5}.student{background:#fbfcf8}.question{border-left:5px solid #ca8444}.score{text-align:right;font-size:24px}.score small{display:block;font:11px Arial;color:#68736c}span,label{font:700 11px Arial;text-transform:uppercase;letter-spacing:.08em;color:#9a6537}pre{font:12px Consolas,monospace;white-space:pre-wrap;background:#17231d;color:#e8f3ec;padding:14px;border-radius:8px;overflow-wrap:anywhere}.file>strong{display:block;margin:10px 0 5px}.feedback{background:#eef4ef;padding:12px;border-radius:8px}.empty{padding:20px;text-align:center}@media print{body{margin:0;background:white}.cover,.session,.student,.question{break-inside:avoid}.student{break-before:auto}}</style></head><body><main><section class="cover"><span>EzProctor Exam</span><h1>${escapeHtml(title)}</h1><p>Exported ${escapeHtml(new Date().toLocaleString())}</p></section>${sections}</main></body></html>`;
+}
+
+function sendAnswerBook(res, groups, title, filename) {
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+  res.send(answerBookHtml(groups, title));
 }
 
 function buildLobbyPayload({ session, student, registration }) {
@@ -216,12 +284,12 @@ function extractDocumentText({ fileName, contentBase64 }) {
     throw new Error("The uploaded file is empty.");
   }
 
-  if (extension === ".txt" || extension === ".md") {
+  if ([".txt", ".md", ".csv", ".json"].includes(extension)) {
     return buffer.toString("utf8");
   }
 
   if (extension !== ".docx") {
-    throw new Error("Please upload a .docx, .txt, or .md file.");
+    throw new Error("Please upload a .docx, .txt, .md, .csv, or .json file.");
   }
 
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "cloudide-docx-"));
@@ -272,6 +340,114 @@ app.get("/api/dashboard/submissions/:id", (req, res) => {
   }
 
   res.json(submission);
+});
+
+app.get("/api/dashboard/submissions/:id/answer-book.pdf", (req, res) => {
+  const submission = getSubmissionById(req.params.id);
+  if (!submission) return res.status(404).json({ error: "Submission not found" });
+  const safeName = submission.fullName.replace(/[^a-z0-9-_]+/gi, "_");
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `attachment; filename="${safeName}-${submission.id}-answers.pdf"`);
+  createAnswerBookPdf(buildSubmissionAnswerBook(submission.id), `${submission.fullName} - ${submission.examTitle}`, res);
+});
+
+app.get("/api/dashboard/sessions/:id/answer-book", (req, res) => {
+  const session = getSessionById(req.params.id);
+  if (!session) return res.status(404).json({ error: "Session not found" });
+  sendAnswerBook(res, buildAnswerBook({ sessionId: session.id }), `${session.sessionName} - Answer Book`, `session-${session.id}-answer-book.html`);
+});
+
+app.get("/api/dashboard/sessions/:id/answer-book.pdf", (req, res) => {
+  const session = getSessionById(req.params.id);
+  if (!session) return res.status(404).json({ error: "Session not found" });
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `attachment; filename="session-${session.id}-answer-backup.pdf"`);
+  createAnswerBookPdf(buildAnswerBook({ sessionId: session.id }), `${session.sessionName} - Answer Backup`, res);
+});
+
+app.get("/api/dashboard/exams/:id/answer-book", (req, res) => {
+  const exam = getExamById(req.params.id);
+  if (!exam) return res.status(404).json({ error: "Exam not found" });
+  sendAnswerBook(res, buildAnswerBook({ examId: exam.id }), `${exam.title} - All Sessions Answer Book`, `exam-${exam.id}-answer-book.html`);
+});
+
+app.get("/api/dashboard/exams/:id/answer-book.pdf", (req, res) => {
+  const exam = getExamById(req.params.id);
+  if (!exam) return res.status(404).json({ error: "Exam not found" });
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `attachment; filename="exam-${exam.id}-all-student-answers.pdf"`);
+  createAnswerBookPdf(buildAnswerBook({ examId: exam.id }), `${exam.title} - All Student Answers`, res);
+});
+
+app.post("/api/dashboard/submissions/:id/questions/:questionId/grade", (req, res) => {
+  const submission = getSubmissionById(req.params.id);
+  if (!submission) {
+    res.status(404).json({ error: "Submission not found" });
+    return;
+  }
+  const answer = gradeQuestionAnswer(submission.sessionId, submission.studentId, req.params.questionId, {
+    score: req.body.score,
+    feedback: req.body.feedback,
+    gradingStatus: req.body.gradingStatus || "Graded",
+    examId: submission.examId
+  });
+  if (!answer) {
+    res.status(404).json({ error: "Question answer not found" });
+    return;
+  }
+  res.json(answer);
+});
+
+app.post("/api/dashboard/submissions/:id/grades", (req, res) => {
+  const submission = getSubmissionById(req.params.id);
+  if (!submission) return res.status(404).json({ error: "Submission not found" });
+  const grades = Array.isArray(req.body.questionGrades) ? req.body.questionGrades : [];
+  const questionById = new Map(submission.questionAnswers.map((answer) => [answer.questionId, answer]));
+  for (const grade of grades) {
+    const question = questionById.get(grade.questionId);
+    if (!question) return res.status(400).json({ error: `Unknown question: ${grade.questionId}` });
+    const score = grade.score === "" || grade.score === null || grade.score === undefined ? null : Number(grade.score);
+    if (score !== null && (!Number.isFinite(score) || score < 0 || score > Number(question.points || 0))) {
+      return res.status(400).json({ error: `Question ${question.questionNumber} mark must be between 0 and ${question.points}.` });
+    }
+  }
+  const savedAnswers = grades.map((grade) => gradeQuestionAnswer(submission.sessionId, submission.studentId, grade.questionId, {
+    score: grade.score,
+    feedback: grade.feedback,
+    gradingStatus: grade.gradingStatus || "Graded",
+    examId: submission.examId
+  }));
+  const total = savedAnswers.reduce((sum, answer) => sum + Number(answer?.score || 0), 0);
+  const savedSubmission = gradeSubmission(submission.id, {
+    gradeScore: req.body.gradeScore === "" || req.body.gradeScore === undefined ? total : req.body.gradeScore,
+    gradeStatus: req.body.gradeStatus || "Graded",
+    teacherFeedback: req.body.teacherFeedback || ""
+  });
+  broadcast("submission-updated", savedSubmission);
+  res.json(savedSubmission);
+});
+
+app.post("/api/dashboard/submissions/:id/questions/:questionId/suggest-grade", (req, res) => {
+  const submission = getSubmissionById(req.params.id);
+  if (!submission) return res.status(404).json({ error: "Submission not found" });
+  const answer = submission.questionAnswers.find((item) => item.questionId === req.params.questionId);
+  if (!answer) return res.status(404).json({ error: "Question answer not found" });
+  res.json({ ...suggestQuestionGrade(answer, answer), questionId: answer.questionId, generatedAt: new Date().toISOString(), advisoryOnly: true });
+});
+
+app.post("/api/dashboard/submissions/:id/suggest-grades", (req, res) => {
+  const submission = getSubmissionById(req.params.id);
+  if (!submission) return res.status(404).json({ error: "Submission not found" });
+  const suggestions = submission.questionAnswers
+    .filter((answer) => answer.answered && answer.answerGuide)
+    .map((answer) => ({
+      ...suggestQuestionGrade(answer, answer),
+      questionId: answer.questionId,
+      questionNumber: answer.questionNumber,
+      generatedAt: new Date().toISOString(),
+      advisoryOnly: true
+    }));
+  res.json({ suggestions, advisoryOnly: true, message: "Suggestions are drafts until an educator saves each mark." });
 });
 
 app.post("/api/dashboard/submissions/:id/grade", (req, res) => {
@@ -340,6 +516,47 @@ app.post("/api/dashboard/exams", (req, res) => {
   res.status(201).json(exam);
 });
 
+app.get("/api/dashboard/exams/:id", (req, res) => {
+  const exam = getExamById(req.params.id);
+  if (!exam) return res.status(404).json({ error: "Exam not found" });
+  res.json(exam);
+});
+
+app.put("/api/dashboard/exams/:id", (req, res) => {
+  const exam = updateExam(req.params.id, req.body);
+  if (!exam) return res.status(404).json({ error: "Exam not found" });
+  broadcast("exam-updated", exam);
+  res.json(exam);
+});
+
+app.post("/api/dashboard/exams/:id/model-answers/preview", (req, res) => {
+  try {
+    const exam = getExamById(req.params.id);
+    if (!exam) return res.status(404).json({ error: "Exam not found" });
+    const sourceText = extractDocumentText({ fileName: req.body.fileName, contentBase64: req.body.contentBase64 });
+    const entries = parseModelAnswers({ fileName: req.body.fileName, sourceText });
+    res.json({ ok: true, examId: exam.id, fileName: req.body.fileName, ...mapModelAnswers(exam, entries) });
+  } catch (error) {
+    res.status(400).json({ error: error.message || "Failed to map model answers." });
+  }
+});
+
+app.post("/api/dashboard/exams/:id/model-answers/apply", (req, res) => {
+  const exam = getExamById(req.params.id);
+  if (!exam) return res.status(404).json({ error: "Exam not found" });
+  const requested = Array.isArray(req.body.matches) ? req.body.matches : [];
+  const answerByQuestionId = new Map(requested
+    .filter((match) => match.questionId && String(match.answerGuide || "").trim())
+    .map((match) => [match.questionId, String(match.answerGuide).trim()]));
+  const questions = exam.questions.map((question) => answerByQuestionId.has(question.id)
+    ? { ...question, answerGuide: answerByQuestionId.get(question.id) }
+    : question);
+  const appliedCount = questions.filter((question, index) => question.answerGuide !== exam.questions[index].answerGuide).length;
+  const updated = updateExam(exam.id, { questions });
+  broadcast("exam-updated", updated);
+  res.json({ ok: true, appliedCount, exam: updated });
+});
+
 app.post("/api/dashboard/questions/generate", async (req, res) => {
   try {
     const questions = await generateQuestionsWithAI({
@@ -399,6 +616,13 @@ app.post("/api/dashboard/sessions", (req, res) => {
   res.status(201).json(session);
 });
 
+app.put("/api/dashboard/sessions/:id", (req, res) => {
+  const session = updateSession(req.params.id, req.body);
+  if (!session) return res.status(404).json({ error: "Session not found" });
+  broadcast("session-updated", session);
+  res.json(session);
+});
+
 app.post("/api/dashboard/students", (req, res) => {
   const student = createStudent({
     id: req.body.id || `student-${crypto.randomUUID().slice(0, 8)}`,
@@ -406,6 +630,20 @@ app.post("/api/dashboard/students", (req, res) => {
   });
   broadcast("student-created", student);
   res.status(201).json(student);
+});
+
+app.put("/api/dashboard/students/:id", (req, res) => {
+  const student = updateStudent(req.params.id, req.body);
+  if (!student) return res.status(404).json({ error: "Student not found" });
+  broadcast("student-updated", student);
+  res.json(student);
+});
+
+app.delete("/api/dashboard/submissions/:id", (req, res) => {
+  const deleted = deleteSubmission(req.params.id);
+  if (!deleted) return res.status(404).json({ error: "Student work not found" });
+  broadcast("dashboard-bootstrap", overviewPayload());
+  res.json({ ok: true, deleted });
 });
 
 app.post("/api/dashboard/students/import", (req, res) => {
@@ -680,16 +918,29 @@ app.get("/api/exam/workspace", (req, res) => {
   const exam = getExamById(effectiveExamId) || null;
   const requestedLanguage = req.query.language || exam?.language;
   const { language, defaultFiles } = getRuntimeDefaults(identity, requestedLanguage);
-  const workspace = getWorkspace(identity.sessionId, identity.studentId, effectiveExamId, defaultFiles);
+  const workspace = getWorkspace(identity.sessionId, identity.studentId, effectiveExamId, defaultFiles, language);
+  const questionId = String(req.query.questionId || "").trim();
+  const questionAnswer = questionId ? getQuestionAnswer(identity.sessionId, identity.studentId, questionId) : null;
+  if (questionAnswer) {
+    const question = exam?.questions?.find((item) => item.id === questionId);
+    const codingQuestion = /coding|debug|frontend/i.test(String(question?.format || ""));
+    workspace.files = codingQuestion ? questionAnswer.files : questionAnswer.scratchFiles;
+    workspace.lastRun = codingQuestion ? questionAnswer.result : questionAnswer.scratchResult;
+  }
   const files = mapRuntimeFiles(language, workspace.files, defaultFiles);
   if (JSON.stringify(files) !== JSON.stringify(workspace.files)) {
-    saveWorkspace(identity.sessionId, identity.studentId, effectiveExamId, files);
+    saveWorkspace(identity.sessionId, identity.studentId, effectiveExamId, files, {
+      language,
+      recordType: "SYSTEM_NORMALIZED",
+      deduplicate: true
+    });
   }
   res.json({
     ...workspace,
     files,
     exam,
-    session
+    session,
+    questionAnswer
   });
 });
 
@@ -697,13 +948,41 @@ app.post("/api/exam/workspace", (req, res) => {
   const identity = ensureOpenIdentity(req);
   const { language, defaultFiles } = getRuntimeDefaults(identity, req.body.language);
   const files = mapRuntimeFiles(language, req.body.files, defaultFiles);
-  const workspace = saveWorkspace(identity.sessionId, identity.studentId, identity.examId, files);
+  const allowedRecordTypes = new Set([
+    "AUTOSAVE", "MANUAL_SAVE", "FILE_ADDED", "FILE_RENAMED", "BEFORE_RUN",
+    "BEFORE_SUBMIT", "TIMER_SUBMIT", "EXIT_SAVE"
+  ]);
+  const requestedRecordType = String(req.body.recordType || "AUTOSAVE").toUpperCase();
+  const recordType = allowedRecordTypes.has(requestedRecordType) ? requestedRecordType : "AUTOSAVE";
+  const workspace = saveWorkspace(identity.sessionId, identity.studentId, identity.examId, files, {
+    language,
+    recordType,
+    deduplicate: recordType === "AUTOSAVE",
+    metadata: { activeFile: String(req.body.activeFile || "") }
+  });
+  const questionId = String(req.body.questionId || "").trim();
+  const questionAnswer = questionId ? saveQuestionAnswer({
+    sessionId: identity.sessionId,
+    studentId: identity.studentId,
+    examId: identity.examId,
+    questionId,
+    files: req.body.answerMode === "text" ? {} : files,
+    stdin: req.body.stdin || "",
+    answerText: req.body.answerText || "",
+    selectedOption: req.body.selectedOption || "",
+    scratchFiles: req.body.answerMode === "text" ? files : {},
+    scratchStdin: req.body.answerMode === "text" ? req.body.stdin || "" : ""
+  }) : null;
   recordActivity({
     sessionId: identity.sessionId,
     studentId: identity.studentId,
     examId: identity.examId,
     eventType: "WORKSPACE_SAVED",
-    payload: { fileCount: Object.keys(files).length }
+    payload: {
+      fileCount: Object.keys(files).length,
+      recordType,
+      questionId: questionId || null
+    }
   });
 
   const session = upsertSnapshot({
@@ -712,7 +991,7 @@ app.post("/api/exam/workspace", (req, res) => {
     currentActivity: "Editing workspace"
   });
   broadcast("student-snapshot", session);
-  res.json(workspace);
+  res.json({ ...workspace, questionAnswer });
 });
 
 app.post("/api/exam/event", (req, res) => {
@@ -752,17 +1031,33 @@ app.post("/api/exam/run", async (req, res) => {
   const identity = ensureOpenIdentity(req);
   const { language, defaultFiles } = getRuntimeDefaults(identity, req.body.language);
   const files = mapRuntimeFiles(language, req.body.files, defaultFiles);
-  saveWorkspace(identity.sessionId, identity.studentId, identity.examId, files);
+  saveWorkspace(identity.sessionId, identity.studentId, identity.examId, files, { record: false });
   const result = await runWorkspaceByLanguage(language, files, req.body.stdin || "");
   result.language = language;
   setLastRun(identity.sessionId, identity.studentId, result);
+  saveWorkspace(identity.sessionId, identity.studentId, identity.examId, files, { record: false });
+  const questionId = String(req.body.questionId || "").trim();
+  const questionAnswer = questionId ? saveQuestionAnswer({
+    sessionId: identity.sessionId,
+    studentId: identity.studentId,
+    examId: identity.examId,
+    questionId,
+    files: req.body.answerMode === "text" ? {} : files,
+    stdin: req.body.stdin || "",
+    result,
+    answerText: req.body.answerText || "",
+    selectedOption: req.body.selectedOption || "",
+    scratchFiles: req.body.answerMode === "text" ? files : {},
+    scratchStdin: req.body.answerMode === "text" ? req.body.stdin || "" : "",
+    scratchResult: req.body.answerMode === "text" ? result : undefined
+  }) : null;
 
   recordActivity({
     sessionId: identity.sessionId,
     studentId: identity.studentId,
     examId: identity.examId,
     eventType: result.ok ? "RUN_CODE" : "RUN_ERROR",
-    payload: result
+    payload: { ...result, questionId }
   });
 
   const session = addEvent({
@@ -773,21 +1068,22 @@ app.post("/api/exam/run", async (req, res) => {
   });
 
   broadcast("student-event", session);
-  res.json(result);
+  res.json({ ...result, questionAnswer });
 });
 
 app.post("/api/exam/submit", (req, res) => {
   const identity = ensureOpenIdentity(req);
   const { language, defaultFiles } = getRuntimeDefaults(identity, req.body.language);
   const files = mapRuntimeFiles(language, req.body.files, defaultFiles);
-  saveWorkspace(identity.sessionId, identity.studentId, identity.examId, files);
+  saveWorkspace(identity.sessionId, identity.studentId, identity.examId, files, { record: false });
 
   const submission = recordSubmission({
     id: `submission-${crypto.randomUUID().slice(0, 8)}`,
     sessionId: identity.sessionId,
     studentId: identity.studentId,
     examId: identity.examId,
-    files
+    files,
+    language
   });
 
   const session = markSubmitted({
@@ -840,7 +1136,7 @@ function startServer(listenPort = port) {
   }
 
   startedServer = server.listen(listenPort, () => {
-    console.log(`CloudIDE Secure backend listening on http://localhost:${listenPort}`);
+    console.log(`EzProctor Exam backend listening on http://localhost:${listenPort}`);
   });
 
   return startedServer;

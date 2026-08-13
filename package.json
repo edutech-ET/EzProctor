@@ -2,7 +2,7 @@
   "name": "cloudide-secure-pro",
   "version": "0.1.0",
   "private": true,
-  "description": "Desktop coding exam platform with CloudIDE lockdown, monitoring, and teacher dashboard.",
+  "description": "Desktop coding exam platform with proctored lockdown, monitoring, and teacher dashboard.",
   "main": "electron/src/main.js",
   "workspaces": [
     "backend",
@@ -35,11 +35,11 @@
   },
   "build": {
     "appId": "com.cloudide.secure",
-    "productName": "CloudIDE Secure Student",
+    "productName": "EzProctor Exam Student",
     "directories": {
       "output": "dist"
     },
-    "artifactName": "CloudIDE-Secure-Student-${version}-Setup.${ext}",
+    "artifactName": "EzProctor-Exam-Student-${version}-Setup.${ext}",
     "files": [
       "electron/**/*",
       "backend/**/*",
@@ -55,7 +55,7 @@
     },
     "protocols": [
       {
-        "name": "CloudIDE Secure Protocol",
+        "name": "EzProctor Exam Protocol",
         "schemes": [
           "cloudidesecure"
         ]
@@ -65,7 +65,7 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": false,
       "perMachine": false,
-      "shortcutName": "CloudIDE Secure Student"
+      "shortcutName": "EzProctor Exam Student"
     }
   }
 }
