@@ -49,4 +49,4 @@ Back up the data volume before upgrades or server migration. If the data volume 
 
 ## License
 
-Copyright © 2026 Ejoe Tso. Use is governed by the [EzProctor Educational Institution License](../LICENSE).
+EzProctor™ is a trademark of Ejoe Tso. Copyright © 2026 Ejoe Tso. All rights reserved. Use is governed by the [EzProctor™ Educational Institution License](../LICENSE) and [Trademark Notice](../TRADEMARK.md).

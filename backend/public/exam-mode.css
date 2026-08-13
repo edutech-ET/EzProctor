@@ -460,3 +460,9 @@ button.danger { background: #7f1d1d; }
   .editor-actions { width: 100%; justify-content: space-between; }
   #editor { min-height: 360px; }
 }
+.legal-notice {
+  padding: 10px 20px;
+  color: var(--muted, #83968e);
+  font-size: 0.7rem;
+  text-align: center;
+}

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>EzProctor Exam Student</title>
+    <title>EzProctor™ Exam Student</title>
     <style>
       :root {
         --bg: #0b1120;
@@ -51,11 +51,12 @@
       .secondary { background: #183b56; color: white; }
       .danger { background: #7f1d1d; color: white; }
       #status { margin-top: 18px; color: var(--muted); font-size: 14px; }
+      .legal { display: block; margin-top: 18px; color: var(--muted); font-size: 11px; line-height: 1.5; }
     </style>
   </head>
   <body>
     <main class="card">
-      <h1>EzProctor Exam Student</h1>
+      <h1>EzProctor™ Exam Student</h1>
       <p>Open the IDE directly. Session code, student ID, and exam identity checks are bypassed in this test flow.</p>
       <div class="stack">
         <a class="primary" href="/exam-mode">Enter IDE</a>
@@ -63,6 +64,7 @@
         <button class="danger" id="exit">Exit Application</button>
       </div>
       <div id="status">Ready.</div>
+      <small class="legal">EzProctor™ is a trademark of Ejoe Tso. Copyright © 2026 Ejoe Tso. All rights reserved.</small>
     </main>
     <script>
       const status = document.getElementById("status");
@@ -86,4 +88,3 @@
     </script>
   </body>
 </html>
-

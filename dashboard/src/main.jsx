@@ -18,7 +18,7 @@ class RootErrorBoundary extends React.Component {
       return (
         <main className="app-shell">
           <section className="panel">
-            <p className="eyebrow">EzProctor Exam</p>
+            <p className="eyebrow">EzProctor™ Exam</p>
             <h1>Teacher Dashboard Error</h1>
             <p className="subcopy">
               The dashboard hit a frontend error instead of rendering the management view.

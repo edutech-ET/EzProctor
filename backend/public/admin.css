@@ -726,3 +726,9 @@ textarea {
     grid-template-columns: 1fr;
   }
 }
+.legal-notice {
+  padding: 10px 20px;
+  color: var(--muted, #83968e);
+  font-size: 0.7rem;
+  text-align: center;
+}

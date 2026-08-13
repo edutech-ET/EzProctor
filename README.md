@@ -1,6 +1,6 @@
-﻿# EzProctor Exam
+# EzProctor™ Exam
 
-EzProctor Exam is an educator-controlled coding assessment platform with exam authoring, secure student check-in, Python/Rust/HTML execution, autosaved question responses, live session monitoring, grading, and PDF answer books.
+EzProctor™ Exam is an educator-controlled coding assessment platform with exam authoring, secure student check-in, Python/Rust/HTML execution, autosaved question responses, live session monitoring, grading, and PDF answer books.
 
 ![Educator console](docs/screenshots/teacher-admin-command-center.png)
 
@@ -118,6 +118,6 @@ A full Docker image build additionally requires a running Docker engine.
 
 ## License
 
-Copyright © 2026 Ejoe Tso.
+EzProctor™ is a trademark of Ejoe Tso. Copyright © 2026 Ejoe Tso. All rights reserved.
 
-The repository is public and source-available. EzProctor is free for licensed educational institutions, but activation is required and commercial redistribution or paid hosted use requires written permission. Because these conditions restrict fields of use, this is not an OSI-approved open-source license. See [LICENSE](LICENSE) and the [Activation Guide](docs/ACTIVATION_GUIDE.md).
+The repository is public and source-available. EzProctor™ is free for licensed educational institutions, but activation is required and commercial redistribution or paid hosted use requires written permission. Because these conditions restrict fields of use, this is not an OSI-approved open-source license. See [LICENSE](LICENSE), the [Trademark Notice](TRADEMARK.md), and the [Activation Guide](docs/ACTIVATION_GUIDE.md).
