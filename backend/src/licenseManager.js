@@ -47,7 +47,7 @@ function activatePlatform({ key, institution, contactEmail = "" }) {
     institution: normalizedInstitution.slice(0, 160),
     contactEmail: String(contactEmail || "").trim().slice(0, 200),
     activatedAt: new Date().toISOString(),
-    license: "EzProctor Educational Institution License 1.0"
+    license: "EzProctor Platform License 1.0"
   };
   fs.mkdirSync(dataDir, { recursive: true });
   fs.writeFileSync(activationPath, `${JSON.stringify(activation, null, 2)}\n`, { mode: 0o600 });

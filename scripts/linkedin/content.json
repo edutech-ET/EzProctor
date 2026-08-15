@@ -138,5 +138,15 @@
     "solution_intro": "A question-focused grading workspace supports consistent educator decisions.",
     "solution_points": ["Student answer beside model answer", "Editable advisory feedback", "Save grade and feedback together"],
     "feature": "EVIDENCE-BASED REVIEW"
+  },
+  {
+    "theme": "licensing-choice",
+    "pain_title": "Assessment budgets should stay focused on learning.",
+    "pain_intro": "Educational institutions need practical technology without another licence barrier.",
+    "pain_points": ["Per-student fees grow quickly", "Workstation charges complicate budgeting", "Commercial pricing rarely fits education"],
+    "solution_title": "Free for education. Flexible for organisations.",
+    "solution_intro": "EzProctor offers eligible education providers a $0 licence fee and a paid self-hosted subscription for other organisations.",
+    "solution_points": ["Free education-sector activation", "Paid annual commercial subscription", "Self-hosted deployment in both paths"],
+    "feature": "$0 EDUCATION LICENCE"
   }
 ]

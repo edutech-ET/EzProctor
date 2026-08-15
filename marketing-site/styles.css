@@ -164,19 +164,26 @@ h2 { font-size: clamp(2.5rem, 5vw, 4.9rem); }
 .demo-caption p { margin: 0; color: var(--muted); font-size: .86rem; }
 
 .source { background: var(--paper); }
-.source-grid { display: grid; grid-template-columns: 1fr .9fr; align-items: center; gap: 100px; }
+.source-grid { display: grid; grid-template-columns: .82fr 1.18fr; align-items: center; gap: 70px; }
 .source-copy h2 { font-size: clamp(3rem, 5vw, 5rem); }
 .source-copy > p { max-width: 590px; color: var(--muted); }
 .source-actions { margin-top: 35px; display: flex; align-items: center; gap: 28px; }
-.license-card { padding: 36px; border: 1px solid var(--line); border-radius: 20px; background: var(--cream); box-shadow: 16px 16px 0 var(--mint); }
-.license-head { display: flex; align-items: center; gap: 7px; margin-bottom: 38px; padding-bottom: 16px; border-bottom: 1px solid var(--line); color: var(--muted); font-family: monospace; font-size: .65rem; letter-spacing: .08em; }
+.license-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.license-card { padding: 28px; border: 1px solid var(--line); border-radius: 20px; background: var(--cream); }
+.license-card-education { box-shadow: 10px 10px 0 var(--mint); }
+.license-card-commercial { box-shadow: 10px 10px 0 var(--peach); }
+.license-head { display: flex; align-items: center; gap: 7px; margin-bottom: 24px; padding-bottom: 14px; border-bottom: 1px solid var(--line); color: var(--muted); font-family: monospace; font-size: .58rem; letter-spacing: .08em; }
 .license-head span { margin-right: auto; }
 .license-head i { width: 7px; height: 7px; border-radius: 50%; background: var(--peach); }
-.license-card h3 { font-size: 1.8rem; line-height: 1.25; }
-.license-card ul { margin: 28px 0; padding: 0; list-style: none; }
-.license-card li { padding: 10px 0; border-bottom: 1px solid var(--line); font-size: .84rem; font-weight: 700; }
+.license-price { display: flex; align-items: end; gap: 9px; margin: 0 0 14px; }
+.license-price strong { color: var(--forest-deep); font-family: "Fraunces", serif; font-size: 2.35rem; line-height: 1; }
+.license-price span { padding-bottom: 3px; color: var(--muted); font-size: .64rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+.license-card h3 { font-size: 1.35rem; line-height: 1.25; }
+.license-card ul { margin: 22px 0; padding: 0; list-style: none; }
+.license-card li { padding: 9px 0; border-bottom: 1px solid var(--line); font-size: .72rem; font-weight: 700; }
 .license-card li span { margin-right: 10px; color: #367864; }
 .license-note { margin: 0; color: var(--muted); font-size: .72rem; }
+.license-options-note { grid-column: 1 / -1; margin-top: 10px; padding-left: 4px; }
 
 .cta { background: var(--paper); }
 .cta-panel { position: relative; overflow: hidden; display: grid; grid-template-columns: .9fr 1.1fr; gap: 70px; padding: 70px; color: var(--paper); border-radius: 28px; background: var(--forest); }
@@ -267,7 +274,10 @@ h2 { font-size: clamp(2.5rem, 5vw, 4.9rem); }
   .demo-tab { grid-template-columns: 34px 1fr 20px; }
   .demo-tab i { display: block; }
   .demo-caption { grid-template-columns: 1fr; gap: 8px; }
-  .license-card { padding: 26px; box-shadow: 8px 8px 0 var(--mint); }
+  .license-options { grid-template-columns: 1fr; }
+  .license-card { padding: 26px; }
+  .license-card-education { box-shadow: 8px 8px 0 var(--mint); }
+  .license-card-commercial { box-shadow: 8px 8px 0 var(--peach); }
   .cta-panel { padding: 42px 25px; gap: 40px; border-radius: 22px; }
   .inquiry-form { padding: 22px; }
   .form-row { grid-template-columns: 1fr; }

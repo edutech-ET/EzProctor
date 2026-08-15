@@ -127,7 +127,7 @@ app.post("/api/activation", (req, res) => {
 app.use("/api", (req, res, next) => {
   if (!activationStatus().activated) {
     return res.status(402).json({
-      error: "EzProctor must be activated by an educational institution before use.",
+      error: "EzProctor must be activated with a valid licence key before use.",
       activationRequired: true,
       requestKeyEmail: "eozoe2025@gmail.com"
     });

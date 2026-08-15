@@ -2,6 +2,8 @@
 
 EzProctor is free for licensed educational institutions. The central platform server must be activated once before educator login, student check-in, or exam APIs are available.
 
+Eligible educational institutions pay a **$0 licence fee**. Commercial training providers, businesses, and other organisations outside the educational grant require a separate paid annual self-hosted subscription. Request a commercial quote from [eozoe2025@gmail.com](mailto:eozoe2025@gmail.com?subject=EzProctor%20Self-Hosted%20Subscription%20Quote&body=Organisation%20name%3A%0ACountry%3A%0AContact%20name%3A%0ADeployment%20scope%3A%0ASupport%20requirements%3A%0A).
+
 ## 1. Request a free key
 
 Email [eozoe2025@gmail.com](mailto:eozoe2025@gmail.com?subject=EzProctor%20Educational%20Activation%20Key%20Request&body=Institution%20name%3A%0ACountry%3A%0AContact%20name%3A%0AContact%20email%3A%0AEducational%20use%3A%0A) with:

@@ -43,7 +43,14 @@ Read the complete [illustrated EzProctor user guide](docs/USER_GUIDE.md).
 
 Copyright &copy; 2026 Ejoe Tso. All rights reserved. EzProctor&trade; is a trademark of Ejoe Tso.
 
-This repository is public and source-available. EzProctor is free for licensed educational institutions, but platform activation is required. Commercial redistribution, paid hosted use, sublicensing, and commercial derivative products require written permission from Ejoe Tso.
+This repository is public and source-available. EzProctor is free for eligible educational institutions, but platform activation is required. Commercial and other organisations outside the educational grant may obtain a paid annual self-hosted licence subscription under a separate written agreement. Subscription fees are quoted according to deployment and support scope.
+
+| Licence path | Fee | Intended use |
+| --- | --- | --- |
+| Education sector | **$0 licence fee** | Eligible schools, colleges, universities, vocational providers, libraries, and nonprofit educational institutions |
+| Self-hosted subscription | **Paid annually; request a quote** | Commercial training, business assessment, and other organisational use outside the educational grant |
+
+Commercial redistribution, paid hosted services, sublicensing, and commercial derivative products remain prohibited unless separately authorised in writing by Ejoe Tso.
 
 These education-focused conditions restrict fields of use, so this is not an OSI-approved open-source license. See [LICENSE](LICENSE), the [Trademark Notice](TRADEMARK.md), and the [Activation Guide](docs/ACTIVATION_GUIDE.md).
 

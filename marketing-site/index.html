@@ -192,17 +192,31 @@
               <a class="text-link text-link-dark" href="https://github.com/edutech-ET/EzProctor/blob/main/LICENSE" target="_blank" rel="noreferrer">Read the educational license</a>
             </div>
           </div>
-          <div class="license-card reveal" data-delay="1">
-            <div class="license-head"><span>LICENSE / EDUCATION</span><i></i><i></i><i></i></div>
-            <h3>Free for licensed educational institutions.</h3>
-            <ul>
-              <li><span>&#10003;</span> Publicly auditable source code</li>
-              <li><span>&#10003;</span> Self-hosted Docker deployment</li>
-              <li><span>&#10003;</span> Educational institutional use</li>
-              <li><span>&#10003;</span> Community issues and contributions</li>
-            </ul>
-            <p class="license-note">
-              EzProctor is source-available under an education-focused license, not an OSI-approved open-source license. Activation is required. Commercial redistribution and paid hosted use require written permission.
+          <div class="license-options reveal" data-delay="1">
+            <article class="license-card license-card-education">
+              <div class="license-head"><span>EDUCATION SECTOR</span><i></i><i></i><i></i></div>
+              <p class="license-price"><strong>$0</strong><span>licence fee</span></p>
+              <h3>Free for eligible educational institutions.</h3>
+              <ul>
+                <li><span>&#10003;</span> Self-hosted Docker deployment</li>
+                <li><span>&#10003;</span> Teaching and assessment use</li>
+                <li><span>&#10003;</span> One central institutional activation</li>
+              </ul>
+              <a class="text-link text-link-dark" href="#start">Request a free education key</a>
+            </article>
+            <article class="license-card license-card-commercial">
+              <div class="license-head"><span>SELF-HOSTED SUBSCRIPTION</span><i></i><i></i><i></i></div>
+              <p class="license-price"><strong>Annual</strong><span>paid licence</span></p>
+              <h3>For commercial and other organisations.</h3>
+              <ul>
+                <li><span>&#10003;</span> Self-hosted organisation deployment</li>
+                <li><span>&#10003;</span> Commercial-use activation</li>
+                <li><span>&#10003;</span> Quote based on deployment scope</li>
+              </ul>
+              <a class="text-link text-link-dark" href="#start">Request a subscription quote</a>
+            </article>
+            <p class="license-note license-options-note">
+              EzProctor is source-available under an education-focused license, not an OSI-approved open-source license. Activation is required. Commercial use is governed by a separate paid subscription agreement.
             </p>
           </div>
         </div>
@@ -213,7 +227,7 @@
           <div class="cta-copy">
             <span class="kicker kicker-light">Ready for a practical test run?</span>
             <h2>Bring your next assessment into one connected workflow.</h2>
-            <p>Tell us about your institution and whether you need an activation key, implementation support, or a general product answer.</p>
+            <p>Tell us whether you need a free education key, a self-hosted subscription quote, implementation support, or a general product answer.</p>
             <a class="button button-outline" href="https://github.com/edutech-ET/EzProctor/releases/download/v0.1.0/EzProctor-Exam-Student-0.1.0-Setup.msi">Download student workstation</a>
           </div>
           <form
@@ -234,6 +248,7 @@
               Request type
               <select name="request_type" required>
                 <option value="activation-key">Request an activation key</option>
+                <option value="self-hosted-subscription">Self-hosted subscription quote</option>
                 <option value="implementation-support">Implementation support</option>
                 <option value="general-inquiry">General inquiry</option>
                 <option value="feedback">Beta feedback</option>
