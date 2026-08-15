@@ -29,6 +29,7 @@ marketing-site/media/
 marketing-site/brand/
 campaign-output/
 campaign-preview-*/
+__pycache__/
 
 # Local Netlify folder
 .netlify
