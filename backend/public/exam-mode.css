@@ -123,6 +123,15 @@ body {
   border-bottom: 1px solid var(--line);
 }
 
+.product-logo {
+  width: 88px;
+  height: 88px;
+  margin-bottom: 16px;
+  border-radius: 18px;
+  object-fit: cover;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.28);
+}
+
 .editor-actions {
   display: flex;
   align-items: center;

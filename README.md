@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/ezproctor-github-banner.svg" alt="EzProctor Exam" width="820" />
+  <img src="assets/brand/ezproctor-logo.png" alt="EzProctor Exam" width="360" />
 </p>
 
 <p align="center">

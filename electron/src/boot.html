@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="../../assets/brand/ezproctor-logo.png" />
     <title>EzProctor™ Exam Student</title>
     <style>
       :root {
@@ -83,6 +84,15 @@
         display: none;
       }
 
+      .boot-logo {
+        width: 108px;
+        height: 108px;
+        margin-bottom: 22px;
+        border-radius: 22px;
+        object-fit: cover;
+        box-shadow: 0 18px 45px rgba(0, 0, 0, 0.32);
+      }
+
       .configuration {
         display: grid;
         gap: 12px;
@@ -111,6 +121,7 @@
   </head>
   <body>
     <main class="panel">
+      <img class="boot-logo" src="../../assets/brand/ezproctor-logo.png" alt="EzProctor Exam" />
       <h1>Preparing your secure coding exam</h1>
       <p>The app is starting the local services and lockdown controls before opening the IDE.</p>
       <section class="status">

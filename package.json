@@ -50,6 +50,7 @@
     "files": [
       "electron/**/*",
       "backend/**/*",
+      "assets/brand/**/*",
       "dashboard/dist/**/*",
       "native/keyboard-hook/**/*",
       "package.json"

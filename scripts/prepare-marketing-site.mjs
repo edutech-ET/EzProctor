@@ -27,5 +27,11 @@ const screenshotCount = await copyDirectory(
   path.join(root, "marketing-site", "assets"),
   ".png",
 );
+const brandDirectory = path.join(root, "marketing-site", "brand");
+await mkdir(brandDirectory, { recursive: true });
+await copyFile(
+  path.join(root, "assets", "brand", "ezproctor-logo.png"),
+  path.join(brandDirectory, "ezproctor-logo.png"),
+);
 
-console.log(`Prepared landing page with ${videoCount} videos and ${screenshotCount} screenshots.`);
+console.log(`Prepared landing page with the EzProctor logo, ${videoCount} videos, and ${screenshotCount} screenshots.`);

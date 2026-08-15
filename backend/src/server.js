@@ -65,6 +65,7 @@ const { addEvent, listSessions: listLiveSessions, markSubmitted, upsertSnapshot 
 const projectRoot = path.resolve(__dirname, "..", "..");
 const publicDir = path.resolve(__dirname, "..", "public");
 const dashboardDistDir = path.resolve(projectRoot, "dashboard", "dist");
+const brandAssetsDir = path.resolve(projectRoot, "assets", "brand");
 const marketingSiteDir = path.resolve(projectRoot, "marketing-site");
 const marketingVideoDir = path.resolve(projectRoot, "docs", "videos");
 const marketingScreenshotDir = path.resolve(projectRoot, "docs", "screenshots");
@@ -91,6 +92,8 @@ app.use((req, res, next) => {
   }
   next();
 });
+app.use("/brand", express.static(brandAssetsDir));
+app.use("/landing/brand", express.static(brandAssetsDir));
 app.use("/landing/media", express.static(marketingVideoDir));
 app.use("/landing/assets", express.static(marketingScreenshotDir));
 app.use("/landing", express.static(marketingSiteDir));

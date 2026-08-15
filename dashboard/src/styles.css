@@ -25,7 +25,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .educator-login-shell { min-height: 100vh; display: grid; place-items: center; padding: 28px; background: radial-gradient(circle at 78% 15%, rgba(240,183,128,.3), transparent 28%), linear-gradient(145deg, #102d25, #174d3c 55%, #0d251e); }
 .educator-login-card { width: min(470px, 100%); overflow: hidden; border: 1px solid rgba(255,255,255,.18); border-radius: 28px; background: var(--paper); box-shadow: 0 35px 100px rgba(4,18,13,.36); }
 .login-brand { display: flex; align-items: center; gap: 14px; padding: 26px 30px; color: #fff; background: #133d31; }
-.login-brand > span { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 15px; background: #f0b780; color: #3f2819; font: 700 .9rem "DM Mono", monospace; }
+.login-brand > .brand-logo { width: 62px; height: 62px; border-radius: 14px; object-fit: cover; box-shadow: 0 10px 26px rgba(0,0,0,.22); }
 .login-brand div { display: grid; }
 .login-brand strong { font: 700 1.5rem "Newsreader", serif; }
 .login-brand small { color: #aac6ba; }
@@ -41,7 +41,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .educator-app { min-height: 100vh; display: grid; grid-template-columns: 244px minmax(0, 1fr); }
 .app-nav { position: sticky; top: 0; height: 100vh; padding: 28px 18px; background: #163d32; color: #f7f2e7; display: flex; flex-direction: column; z-index: 5; }
 .brand-lockup { display: flex; gap: 12px; align-items: center; padding: 0 10px 30px; }
-.brand-lockup > span { width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; background: #f0b780; color: #3f2819; font-family: "DM Mono", monospace; font-weight: 600; }
+.brand-lockup > .brand-logo { width: 52px; height: 52px; border-radius: 12px; object-fit: cover; box-shadow: 0 8px 20px rgba(0,0,0,.2); }
 .brand-lockup div { display: grid; }
 .brand-lockup strong { font-family: "Newsreader", serif; font-size: 1.25rem; line-height: 1; }
 .brand-lockup small { margin-top: 4px; color: #aac6ba; }
@@ -268,7 +268,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--forest-2); box-s
   .educator-app { display: block; }
   .app-nav { position: sticky; height: auto; padding: 10px 12px; flex-direction: row; align-items: center; overflow-x: auto; }
   .brand-lockup { padding: 0; margin-right: 8px; }
-  .brand-lockup > span { width: 36px; height: 36px; }
+  .brand-lockup > .brand-logo { width: 40px; height: 40px; }
   .brand-lockup div, .nav-footer { display: none; }
   .app-nav nav { display: flex; gap: 5px; }
   .app-nav nav button { flex: 0 0 auto; padding: 9px 10px; }

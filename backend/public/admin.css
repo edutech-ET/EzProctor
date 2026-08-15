@@ -732,3 +732,12 @@ textarea {
   font-size: 0.7rem;
   text-align: center;
 }
+
+.product-logo {
+  width: 104px;
+  height: 104px;
+  margin-bottom: 18px;
+  border-radius: 21px;
+  object-fit: cover;
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.24);
+}

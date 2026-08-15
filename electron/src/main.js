@@ -212,6 +212,7 @@ function createMainWindow() {
     maximizable: true,
     skipTaskbar: false,
     autoHideMenuBar: true,
+    icon: path.resolve(__dirname, "..", "..", "assets", "brand", "ezproctor-logo.png"),
     backgroundColor: "#0b1120",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
