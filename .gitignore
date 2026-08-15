@@ -24,3 +24,8 @@ tmp/
 backend-*.log
 dashboard-*.log
 electron-*.log
+marketing-site/assets/
+marketing-site/media/
+
+# Local Netlify folder
+.netlify

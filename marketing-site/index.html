@@ -3,123 +3,271 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>EzProctor™ Exam | Coding Exam Platform</title>
     <meta
       name="description"
-      content="EzProctor™ Exam is a secure coding exam platform for schools and training providers with role-based workflows for admins, teachers, and students."
+      content="EzProctor Exam helps educators build, run, monitor, and grade secure written and coding assessments on their own network."
     />
+    <meta name="theme-color" content="#103d35" />
+    <link rel="canonical" href="https://ezproctor.ejoetso.com/" />
+    <title>EzProctor Exam | Practical assessment operations, simplified</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Syne:wght@500;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./styles.css" />
+    <script src="./main.js" defer></script>
   </head>
   <body>
-    <header class="hero">
-      <nav class="topbar">
-        <p class="brand">EzProctor™ Exam</p>
-        <a class="cta" href="#roles">Explore Roles</a>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="site-header" data-header>
+      <a class="brand" href="#top" aria-label="EzProctor Exam home">
+        <span class="brand-mark" aria-hidden="true">EZ</span>
+        <span>EzProctor<span class="brand-light"> Exam</span><sup>&trade;</sup></span>
+      </a>
+
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">
+        <span class="sr-only">Open navigation</span>
+        <span></span><span></span>
+      </button>
+
+      <nav id="site-nav" class="site-nav" aria-label="Main navigation">
+        <a href="#platform">Platform</a>
+        <a href="#workflow">Workflow</a>
+        <a href="#demos">Demos</a>
+        <a href="#source">Public source</a>
+        <a class="button button-small button-dark" href="#start">Run a drill test</a>
       </nav>
-      <div class="hero-grid">
-        <div>
-          <p class="eyebrow">Secure Coding Assessment Platform</p>
-          <h1>Run Professional Coding Exams With Confidence</h1>
-          <p class="lead">
-            EzProctor™ Exam combines exam authoring, live session control, and student IDE execution in one
-            focused platform for real classrooms and labs.
-          </p>
-          <div class="hero-actions">
-            <a class="btn btn-primary" href="#workflow">View Workflow</a>
-            <a class="btn btn-outline" href="#stack">See Tech Stack</a>
-          </div>
-        </div>
-        <aside class="snapshot">
-          <h2>At A Glance</h2>
-          <ul>
-            <li>Admin-ready deployment</li>
-            <li>Teacher command center</li>
-            <li>Student exam mode + IDE</li>
-            <li>Python and Rust runtime support</li>
-            <li>Submission review and grading</li>
-          </ul>
-        </aside>
-      </div>
     </header>
 
-    <main>
-      <section id="roles" class="section">
-        <div class="section-head">
-          <p class="eyebrow">Role-Based Experience</p>
-          <h2>Built For Every Exam Stakeholder</h2>
+    <main id="main">
+      <section id="top" class="hero section-shell">
+        <div class="hero-copy reveal">
+          <div class="eyebrow"><span class="pulse-dot"></span> Beta 1 is open for educator drill tests</div>
+          <h1>Less exam admin.<br /><em>More time to teach.</em></h1>
+          <p class="hero-lead">
+            Create written and coding assessments, release secure LAN sessions, monitor progress,
+            and grade every answer from one educator workspace.
+          </p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#start">Start your drill test <span aria-hidden="true">&rarr;</span></a>
+            <a class="text-link" href="#demos">Watch the real workflow <span aria-hidden="true">&#9654;</span></a>
+          </div>
+          <div class="trust-row" aria-label="Product highlights">
+            <span>Python, Rust &amp; HTML</span>
+            <span>LAN-first delivery</span>
+            <span>PDF answer books</span>
+          </div>
         </div>
-        <div class="card-grid">
-          <article class="role-card">
-            <span class="chip">Admin</span>
-            <h3>Deploy And Operate</h3>
-            <p>Launch with local runtime or Docker, validate health endpoints, and hand over stable exam URLs.</p>
+
+        <div class="hero-visual reveal" data-delay="1">
+          <div class="visual-orbit orbit-one"></div>
+          <div class="visual-orbit orbit-two"></div>
+          <figure class="product-frame">
+            <div class="frame-bar">
+              <span></span><span></span><span></span>
+              <strong>Educator command center</strong>
+            </div>
+            <img src="./assets/teacher-admin-command-center.png" alt="EzProctor educator dashboard showing exam and session status" />
+          </figure>
+          <aside class="floating-card floating-card-top">
+            <span class="mini-icon">01</span>
+            <div><strong>Active session</strong><small>Live student progress</small></div>
+          </aside>
+          <aside class="floating-card floating-card-bottom">
+            <span class="status-check" aria-hidden="true">&#10003;</span>
+            <div><strong>Answers synced</strong><small>Latest work retained</small></div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="proof-strip" aria-label="Platform capabilities">
+        <div><strong>1</strong><span>connected assessment workflow</span></div>
+        <div><strong>4</strong><span>question formats supported</span></div>
+        <div><strong>3</strong><span>coding environments included</span></div>
+        <div><strong>100%</strong><span>educator-controlled grading</span></div>
+      </section>
+
+      <section id="platform" class="platform section-shell section-pad">
+        <div class="section-heading reveal">
+          <span class="kicker">Built around the assessment day</span>
+          <h2>One calm workspace from question paper to final mark.</h2>
+          <p>EzProctor removes the handoffs that make practical exams difficult to administer and slow to grade.</p>
+        </div>
+
+        <div class="feature-grid">
+          <article class="feature-card feature-card-large reveal">
+            <div class="feature-number">01</div>
+            <div>
+              <span class="card-label">Prepare</span>
+              <h3>Import, classify, and refine questions.</h3>
+              <p>Bring in question papers and model answers, review detected question types, then publish only when the exam is ready.</p>
+            </div>
+            <div class="question-stack" aria-hidden="true">
+              <span><i>A</i> Multiple choice <b>Ready</b></span>
+              <span><i>B</i> Short response <b>Ready</b></span>
+              <span><i>C</i> Coding task <b>IDE</b></span>
+            </div>
           </article>
-          <article class="role-card">
-            <span class="chip">Teacher</span>
-            <h3>Create, Run, Grade</h3>
-            <p>Build exams, schedule sessions, register students, monitor activity, and grade submissions.</p>
+
+          <article class="feature-card reveal" data-delay="1">
+            <div class="feature-number">02</div>
+            <span class="card-label">Deliver</span>
+            <h3>Run secure sessions on your network.</h3>
+            <p>Students check in through the workstation app while educators see attendance, progress, and session health.</p>
           </article>
-          <article class="role-card">
-            <span class="chip">Student</span>
-            <h3>Verify, Code, Submit</h3>
-            <p>Authenticate, enter exam mode, solve tasks in IDE, and submit work before timer expiry.</p>
+
+          <article class="feature-card feature-card-accent reveal" data-delay="2">
+            <div class="feature-number">03</div>
+            <span class="card-label">Assess</span>
+            <h3>Review the latest answer, not a trail of drafts.</h3>
+            <p>Grade by student and question, use model-assisted pre-grading, confirm marks, and export a complete PDF answer book.</p>
           </article>
         </div>
       </section>
 
-      <section id="workflow" class="section section-accent">
-        <div class="section-head">
-          <p class="eyebrow">Exam Lifecycle</p>
-          <h2>Simple End-To-End Workflow</h2>
+      <section id="workflow" class="workflow section-pad">
+        <div class="section-shell workflow-shell">
+          <div class="workflow-copy reveal">
+            <span class="kicker kicker-light">A simpler operating model</span>
+            <h2>Designed for educators.<br />Clear for students.</h2>
+            <p>Every role sees only what it needs, while the assessment record stays connected from start to finish.</p>
+          </div>
+          <ol class="workflow-list">
+            <li class="reveal"><span>1</span><div><strong>Build the exam</strong><p>Import questions, assign formats and marks, attach model answers.</p></div></li>
+            <li class="reveal" data-delay="1"><span>2</span><div><strong>Open a session</strong><p>Set access details, duration, and release controls for the cohort.</p></div></li>
+            <li class="reveal" data-delay="2"><span>3</span><div><strong>Students complete work</strong><p>Answer text questions and test code in the integrated practical IDE.</p></div></li>
+            <li class="reveal" data-delay="3"><span>4</span><div><strong>Review and export</strong><p>Confirm grades, add feedback, and archive complete answer books.</p></div></li>
+          </ol>
         </div>
-        <ol class="timeline">
-          <li><strong>1. Setup:</strong> Admin starts platform and checks system health.</li>
-          <li><strong>2. Author:</strong> Teacher creates exam template and questions.</li>
-          <li><strong>3. Schedule:</strong> Teacher creates session and assigns students.</li>
-          <li><strong>4. Run:</strong> Students verify identity and launch secure IDE.</li>
-          <li><strong>5. Monitor:</strong> Teacher tracks live progress and integrity signals.</li>
-          <li><strong>6. Review:</strong> Submissions are inspected, graded, and exported.</li>
-        </ol>
       </section>
 
-      <section id="stack" class="section">
-        <div class="section-head">
-          <p class="eyebrow">Platform Stack</p>
-          <h2>Practical, Modern, Extensible</h2>
+      <section id="demos" class="demos section-shell section-pad">
+        <div class="section-heading section-heading-row reveal">
+          <div>
+            <span class="kicker">Real product walkthroughs</span>
+            <h2>See the workflow, not a slide show.</h2>
+          </div>
+          <p>These short recordings use the actual EzProctor interface from setup through submission.</p>
         </div>
-        <div class="stack-grid">
-          <article>
-            <h3>Frontend</h3>
-            <p>Teacher dashboard with React + Vite, and focused exam/admin interfaces for fast operations.</p>
-          </article>
-          <article>
-            <h3>Backend</h3>
-            <p>Node.js + Express APIs, WebSocket event updates, and SQLite-backed session/submission data.</p>
-          </article>
-          <article>
-            <h3>Runtime</h3>
-            <p>Python and Rust execution pipelines, exam workspace management, and language-aware file rules.</p>
-          </article>
-          <article>
-            <h3>Desktop Security</h3>
-            <p>Electron lockdown client plus native keyboard-hook capability for tighter exam control on Windows.</p>
-          </article>
+
+        <div class="demo-layout reveal">
+          <div class="video-wrap">
+            <video data-demo-video controls preload="metadata" poster="./assets/teacher-admin-command-center.png">
+              <source src="./media/educator-demo.mp4" type="video/mp4" />
+              Your browser does not support embedded video.
+            </video>
+          </div>
+          <div class="demo-selector" role="tablist" aria-label="Choose a demonstration">
+            <button class="demo-tab active" type="button" role="tab" aria-selected="true" data-video="educator-demo.mp4" data-poster="teacher-admin-command-center.png" data-title="Educator workflow" data-copy="Import questions, create sessions, monitor students, grade submissions, and export PDF answer books.">
+              <span>01</span><div><strong>Educator workflow</strong><small>Manage, monitor, grade</small></div><i aria-hidden="true">&#9654;</i>
+            </button>
+            <button class="demo-tab" type="button" role="tab" aria-selected="false" data-video="student-demo.mp4" data-poster="student-ide.png" data-title="Student workflow" data-copy="Check in, navigate questions, test Python code, rely on autosave, and submit the exam.">
+              <span>02</span><div><strong>Student workflow</strong><small>Check in, answer, submit</small></div><i aria-hidden="true">&#9654;</i>
+            </button>
+            <button class="demo-tab" type="button" role="tab" aria-selected="false" data-video="implementation-guide.mp4" data-poster="home-landing.png" data-title="Implementation guide" data-copy="Deploy with Docker, configure the platform, validate the environment, and plan backups and upgrades.">
+              <span>03</span><div><strong>Implementation guide</strong><small>Deploy and validate</small></div><i aria-hidden="true">&#9654;</i>
+            </button>
+          </div>
+        </div>
+        <div class="demo-caption" aria-live="polite">
+          <strong data-demo-title>Educator workflow</strong>
+          <p data-demo-copy>Import questions, create sessions, monitor students, grade submissions, and export PDF answer books.</p>
+        </div>
+      </section>
+
+      <section id="source" class="source section-pad">
+        <div class="section-shell source-grid">
+          <div class="source-copy reveal">
+            <span class="kicker">Public source, clear terms</span>
+            <h2>Inspect it. Deploy it. Help improve it.</h2>
+            <p>
+              The complete EzProctor codebase, Docker configuration, workstation installer, guides, and release history are publicly available on GitHub.
+            </p>
+            <div class="source-actions">
+              <a class="button button-dark" href="https://github.com/edutech-ET/EzProctor" target="_blank" rel="noreferrer">View source on GitHub <span aria-hidden="true">&nearr;</span></a>
+              <a class="text-link text-link-dark" href="https://github.com/edutech-ET/EzProctor/blob/main/LICENSE" target="_blank" rel="noreferrer">Read the educational license</a>
+            </div>
+          </div>
+          <div class="license-card reveal" data-delay="1">
+            <div class="license-head"><span>LICENSE / EDUCATION</span><i></i><i></i><i></i></div>
+            <h3>Free for licensed educational institutions.</h3>
+            <ul>
+              <li><span>&#10003;</span> Publicly auditable source code</li>
+              <li><span>&#10003;</span> Self-hosted Docker deployment</li>
+              <li><span>&#10003;</span> Educational institutional use</li>
+              <li><span>&#10003;</span> Community issues and contributions</li>
+            </ul>
+            <p class="license-note">
+              EzProctor is source-available under an education-focused license, not an OSI-approved open-source license. Activation is required. Commercial redistribution and paid hosted use require written permission.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="start" class="cta section-shell section-pad reveal">
+        <div class="cta-panel">
+          <div class="cta-copy">
+            <span class="kicker kicker-light">Ready for a practical test run?</span>
+            <h2>Bring your next assessment into one connected workflow.</h2>
+            <p>Tell us about your institution and whether you need an activation key, implementation support, or a general product answer.</p>
+            <a class="button button-outline" href="https://github.com/edutech-ET/EzProctor/releases/download/v0.1.0/EzProctor-Exam-Student-0.1.0-Setup.msi">Download student workstation</a>
+          </div>
+          <form
+            class="inquiry-form"
+            name="ezproctor-inquiry"
+            method="POST"
+            action="/thanks.html"
+            data-netlify="true"
+            netlify-honeypot="bot-field"
+          >
+            <input type="hidden" name="form-name" value="ezproctor-inquiry" />
+            <p class="bot-field"><label>Do not complete this field <input name="bot-field" /></label></p>
+            <div class="form-heading">
+              <span>Educator enquiry</span>
+              <strong>How can we help?</strong>
+            </div>
+            <label>
+              Request type
+              <select name="request_type" required>
+                <option value="activation-key">Request an activation key</option>
+                <option value="implementation-support">Implementation support</option>
+                <option value="general-inquiry">General inquiry</option>
+                <option value="feedback">Beta feedback</option>
+              </select>
+            </label>
+            <div class="form-row">
+              <label>
+                Your name
+                <input type="text" name="name" autocomplete="name" required />
+              </label>
+              <label>
+                Work email
+                <input type="email" name="email" autocomplete="email" required />
+              </label>
+            </div>
+            <label>
+              Institution
+              <input type="text" name="institution" autocomplete="organization" required />
+            </label>
+            <label>
+              Assessment or implementation notes <span>(optional)</span>
+              <textarea name="message" rows="3" placeholder="Course, student cohort, timing, or questions"></textarea>
+            </label>
+            <button class="button button-light form-submit" type="submit">Send request <span aria-hidden="true">&rarr;</span></button>
+            <small>Submitted securely through Netlify Forms. We will reply by email.</small>
+          </form>
         </div>
       </section>
     </main>
 
-    <footer class="footer">
-      <p>EzProctor™ Exam</p>
-      <p>Secure practical assessments for modern classrooms.</p>
-      <p>EzProctor™ is a trademark of Ejoe Tso. Copyright © 2026 Ejoe Tso. All rights reserved.</p>
+    <footer class="site-footer section-shell">
+      <a class="brand footer-brand" href="#top"><span class="brand-mark">EZ</span><span>EzProctor Exam<sup>&trade;</sup></span></a>
+      <p>Secure assessment operations for modern educators.</p>
+      <div class="footer-links"><a href="https://github.com/edutech-ET/EzProctor">GitHub</a><a href="#start">Contact</a></div>
+      <small>&copy; 2026 Ejoe Tso. All rights reserved. EzProctor&trade; is a trademark of Ejoe Tso.</small>
     </footer>
-
-    <script src="./main.js"></script>
   </body>
 </html>
