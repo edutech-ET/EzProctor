@@ -28,10 +28,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out EzProctor
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -54,7 +54,7 @@ jobs:
         run: python scripts/linkedin/generate_campaign.py --date "$CAMPAIGN_DATE" --output campaign-output
 
       - name: Keep campaign preview
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ezproctor-linkedin-${{ env.CAMPAIGN_DATE }}
           path: campaign-output/
