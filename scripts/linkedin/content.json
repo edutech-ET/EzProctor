@@ -1,0 +1,142 @@
+[
+  {
+    "theme": "fragmented-workflow",
+    "pain_title": "Assessment should not require five disconnected tools.",
+    "pain_intro": "Every hand-off creates more administration and less time for teaching.",
+    "pain_points": ["Questions arrive in different formats", "Student setup varies by workstation", "Evidence is scattered across systems"],
+    "solution_title": "One controlled assessment workflow.",
+    "solution_intro": "EzProctor brings authoring, delivery, monitoring, coding and grading together.",
+    "solution_points": ["Import and organise questions", "Run written and coding exams", "Review one answer book per student"],
+    "feature": "AUTHOR  |  DELIVER  |  GRADE"
+  },
+  {
+    "theme": "coding-context-switch",
+    "pain_title": "Why should coding students leave the exam to test their code?",
+    "pain_intro": "External IDEs break the assessment flow and reduce educator visibility.",
+    "pain_points": ["Unsynchronised code versions", "Uncontrolled external tools", "Manual collection after the exam"],
+    "solution_title": "Code. Test. Autosave. Submit.",
+    "solution_intro": "The practical coding IDE stays inside the secure exam experience.",
+    "solution_points": ["Python and Rust execution", "HTML live preview", "Latest official answer synchronised"],
+    "feature": "IN-EXAM CODING IDE"
+  },
+  {
+    "theme": "grading-load",
+    "pain_title": "The exam ends. The marking workload begins.",
+    "pain_intro": "Large answer volumes make consistent review difficult and slow.",
+    "pain_points": ["Answers spread across files", "Feedback and marks stored separately", "Export becomes another admin task"],
+    "solution_title": "From submission to confirmed mark.",
+    "solution_intro": "Advisory pre-grading supports educators without replacing their judgement.",
+    "solution_points": ["Question-by-question review", "Educator confirms every grade", "Export complete PDF answer books"],
+    "feature": "EDUCATOR-CONTROLLED GRADING"
+  },
+  {
+    "theme": "autosave",
+    "pain_title": "A lost answer should never decide a student's result.",
+    "pain_intro": "Browser crashes and network interruptions create avoidable assessment risk.",
+    "pain_points": ["Manual save is easy to forget", "Drafts remain on one workstation", "Educators cannot verify progress"],
+    "solution_title": "Keep the latest official student work.",
+    "solution_intro": "EzProctor synchronises answer progress to the assessment database.",
+    "solution_points": ["Automatic answer snapshots", "Next marks a question answered", "Submission state visible to educators"],
+    "feature": "AUTOSAVE  |  SYNCHRONISE"
+  },
+  {
+    "theme": "question-import",
+    "pain_title": "Rebuilding every question by hand is not assessment design.",
+    "pain_intro": "Educators already have question papers. The platform should respect that work.",
+    "pain_points": ["Copy-and-paste wastes preparation time", "Question types need manual correction", "Numbering becomes inconsistent"],
+    "solution_title": "Import, classify and refine.",
+    "solution_intro": "Bring existing papers into a structured exam workflow.",
+    "solution_points": ["Detect sections and question types", "Import model answers", "Edit numbering before release"],
+    "feature": "QUESTION IMPORT"
+  },
+  {
+    "theme": "session-control",
+    "pain_title": "Who has started? Who is active? Who has submitted?",
+    "pain_intro": "During an exam, educators need answers at a glance, not another spreadsheet.",
+    "pain_points": ["Attendance is checked separately", "Progress is hard to see", "Session status becomes guesswork"],
+    "solution_title": "A live operational view for every session.",
+    "solution_intro": "Simple visual status keeps the educator focused on the room.",
+    "solution_points": ["Active student count", "Question progress indicators", "Submission and connection status"],
+    "feature": "LIVE SESSION MONITORING"
+  },
+  {
+    "theme": "mixed-assessment",
+    "pain_title": "One assessment can include more than one kind of thinking.",
+    "pain_intro": "Written explanations and practical code should belong in the same exam.",
+    "pain_points": ["Separate platforms split evidence", "Students repeat login and setup", "Educators merge results manually"],
+    "solution_title": "Written and coding questions, together.",
+    "solution_intro": "Use the right answer experience for each question type.",
+    "solution_points": ["Multiple choice", "Short and long responses", "Practical coding with IDE access"],
+    "feature": "MIXED-MODE ASSESSMENT"
+  },
+  {
+    "theme": "workstation-setup",
+    "pain_title": "Exam-day setup should not become the first question.",
+    "pain_intro": "Complex workstation preparation increases support pressure before students begin.",
+    "pain_points": ["Different local environments", "Last-minute software configuration", "Inconsistent launch instructions"],
+    "solution_title": "A focused student workstation experience.",
+    "solution_intro": "The EzProctor desktop client connects students to the exam on the local network.",
+    "solution_points": ["MSI workstation installer", "Controlled exam launch", "Clear connection and check-in flow"],
+    "feature": "SECURE CHECK-IN"
+  },
+  {
+    "theme": "answer-books",
+    "pain_title": "Assessment evidence should be ready when audit day arrives.",
+    "pain_intro": "Reconstructing student work after the session is slow and risky.",
+    "pain_points": ["Responses live in different places", "Code and written work are separated", "Backup preparation takes hours"],
+    "solution_title": "One complete answer book per student.",
+    "solution_intro": "Create a consistent record across every question in the exam.",
+    "solution_points": ["Latest submitted answers", "Code and written responses", "PDF export for review and backup"],
+    "feature": "PDF ANSWER BOOKS"
+  },
+  {
+    "theme": "educator-control",
+    "pain_title": "AI advice should not become an automatic final grade.",
+    "pain_intro": "Assessment decisions need context, accountability and educator judgement.",
+    "pain_points": ["Opaque scoring reduces trust", "Nuance can be missed", "Feedback needs academic context"],
+    "solution_title": "AI can advise. The educator decides.",
+    "solution_intro": "Model answers support pre-grading while confirmation remains human-led.",
+    "solution_points": ["Advisory score and feedback", "Model-answer mapping", "Educator confirms marks"],
+    "feature": "HUMAN-IN-THE-LOOP"
+  },
+  {
+    "theme": "question-navigation",
+    "pain_title": "Students should spend exam time answering, not navigating.",
+    "pain_intro": "Long status lists and unclear progress create unnecessary cognitive load.",
+    "pain_points": ["Answered items are hard to review", "Current position is unclear", "Important questions get missed"],
+    "solution_title": "Clear progress at a glance.",
+    "solution_intro": "Visual question status helps students move confidently through the exam.",
+    "solution_points": ["Compact progress indicators", "One-click question review", "Answered and current states"],
+    "feature": "STUDENT-CENTRED UX"
+  },
+  {
+    "theme": "local-control",
+    "pain_title": "A practical exam should not depend on the public internet.",
+    "pain_intro": "Connectivity uncertainty can turn assessment delivery into incident management.",
+    "pain_points": ["External services may be unavailable", "Latency disrupts coding tests", "Data leaves the local environment"],
+    "solution_title": "Run the assessment on your own network.",
+    "solution_intro": "EzProctor supports institution-controlled LAN deployment.",
+    "solution_points": ["Docker server deployment", "Local workstation access", "Institution-controlled assessment data"],
+    "feature": "LOCAL NETWORK DEPLOYMENT"
+  },
+  {
+    "theme": "open-source",
+    "pain_title": "Assessment infrastructure should be understandable.",
+    "pain_intro": "Educators and IT teams need visibility into the platform they depend on.",
+    "pain_points": ["Closed workflows limit adaptation", "Integration becomes expensive", "Technical decisions stay hidden"],
+    "solution_title": "Open source for educational use.",
+    "solution_intro": "Inspect, implement and contribute to the EzProctor project.",
+    "solution_points": ["Public source repository", "Docker implementation guide", "Community drill testing"],
+    "feature": "OPEN EDUCATION TECHNOLOGY"
+  },
+  {
+    "theme": "feedback",
+    "pain_title": "Marks alone do not help students understand their learning.",
+    "pain_intro": "Useful feedback is often delayed by the volume of assessment administration.",
+    "pain_points": ["Comments are repeated manually", "Evidence is difficult to reference", "Feedback and grades drift apart"],
+    "solution_title": "Review evidence, feedback and marks together.",
+    "solution_intro": "A question-focused grading workspace supports consistent educator decisions.",
+    "solution_points": ["Student answer beside model answer", "Editable advisory feedback", "Save grade and feedback together"],
+    "feature": "EVIDENCE-BASED REVIEW"
+  }
+]

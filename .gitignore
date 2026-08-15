@@ -27,6 +27,8 @@ electron-*.log
 marketing-site/assets/
 marketing-site/media/
 marketing-site/brand/
+campaign-output/
+campaign-preview-*/
 
 # Local Netlify folder
 .netlify
